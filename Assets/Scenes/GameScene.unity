@@ -1352,11 +1352,11 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 315259638}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 1, y: 1}
-  m_AnchorMax: {x: 1, y: 1}
+  m_AnchorMin: {x: 0.5, y: 1}
+  m_AnchorMax: {x: 0.5, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
-  m_Pivot: {x: 1, y: 1}
+  m_SizeDelta: {x: 300, y: 500}
+  m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &239939888
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1377,7 +1377,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 21300000, guid: 8ba1d3d3680e0490ea94596b1674c907, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -1678,6 +1678,53 @@ MonoBehaviour:
     - {fileID: 5752101609512036727, guid: a7719539470a849759202489cd10f00d, type: 3}
     - {fileID: 4468299506660166566, guid: 28b17101cfdb947858047dcfdf6c3c7c, type: 3}
     - {fileID: 4504239562780936630, guid: d0874108e5b4d42fe943a2b827a11106, type: 3}
+  - id: 1
+    recipeImage: {fileID: 21300000, guid: 8ba1d3d3680e0490ea94596b1674c907, type: 3}
+    resultImage: {fileID: 21300000, guid: 8ba1d3d3680e0490ea94596b1674c907, type: 3}
+    cupId: 2
+    ingredients:
+    - {fileID: 1176198486}
+    toppings:
+    - {fileID: 6839092970728252880, guid: c18c7b1a3eb434fa9b5c8d7b41121b3d, type: 3}
+    - {fileID: 8571556051981033937, guid: fbb00f2ff2cb54d93a620ebb35df2e70, type: 3}
+    - {fileID: 4546890918288148007, guid: 05a7a0f4d04844e3eb1d676670610528, type: 3}
+  - id: 2
+    recipeImage: {fileID: 21300000, guid: 9e73b3c977a5645b0ac9027737ebfa6e, type: 3}
+    resultImage: {fileID: 21300000, guid: 9e73b3c977a5645b0ac9027737ebfa6e, type: 3}
+    cupId: 4
+    ingredients:
+    - {fileID: 2124770727}
+    toppings:
+    - {fileID: -5679091414144784306, guid: 2ac3696c4ff424bb78e8df61445e7b94, type: 3}
+    - {fileID: 8047291097182169842, guid: 241ab910c19e546a6bdbe81b3cfec166, type: 3}
+    - {fileID: 4468299506660166566, guid: 28b17101cfdb947858047dcfdf6c3c7c, type: 3}
+    - {fileID: 1756026194297558885, guid: ea8777bb5fe054774b776b7da1cd0a90, type: 3}
+  - id: 3
+    recipeImage: {fileID: 21300000, guid: 0f67ebfbdaefe4393b3e2bdcdefa783d, type: 3}
+    resultImage: {fileID: 21300000, guid: 0f67ebfbdaefe4393b3e2bdcdefa783d, type: 3}
+    cupId: 3
+    ingredients:
+    - {fileID: 39916970}
+    toppings:
+    - {fileID: 838130501737063716, guid: b1d0d4ec6de4a403893e84ee1ac09954, type: 3}
+    - {fileID: 1214669604646992821, guid: 14021543428534c29af829af8c4f4ff1, type: 3}
+    - {fileID: 6825398386145591982, guid: 3cc22c4458c944640932c57947fa565f, type: 3}
+    - {fileID: 7654899005113644987, guid: 88d6a19c89d6a4d0781f083b2d20cbda, type: 3}
+    - {fileID: 8571556051981033937, guid: fbb00f2ff2cb54d93a620ebb35df2e70, type: 3}
+  - id: 4
+    recipeImage: {fileID: 21300000, guid: 58ab33af602654977bf04a1a73e4ac18, type: 3}
+    resultImage: {fileID: 21300000, guid: 58ab33af602654977bf04a1a73e4ac18, type: 3}
+    cupId: 6
+    ingredients:
+    - {fileID: 765380282}
+    toppings:
+    - {fileID: -5679091414144784306, guid: 2ac3696c4ff424bb78e8df61445e7b94, type: 3}
+    - {fileID: 1090827292475567734, guid: 6625156812063491c87a933c0a7fbc70, type: 3}
+    - {fileID: 5506495518549599008, guid: 712f5655a0a284547824057e5c12165c, type: 3}
+    - {fileID: 6886187355325745241, guid: d6abbdde4c1754c2dae88d2aa316da50, type: 3}
+    - {fileID: 8623503331078243768, guid: 282b17227e22f429fb247160f5876613, type: 3}
+    - {fileID: 1344424836745742343, guid: 5c09ec83e3eb540f3a35694d36618304, type: 3}
+    - {fileID: 2852034598306734192, guid: 51e0a1654b5f04216b0c98233998b596, type: 3}
   tracker: {fileID: 1724973758}
   cup: {fileID: 1810549524}
   recipeImageUI: {fileID: 239939888}
@@ -2748,7 +2795,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &514251889
 RectTransform:
   m_ObjectHideFlags: 0
@@ -5442,6 +5489,7 @@ MonoBehaviour:
   finalGulp: {fileID: 0}
   bubble: {fileID: 0}
   pitchJitter: {x: 0.92, y: 1.08}
+  synthesizeMissingClips: 1
 --- !u!4 &990213332
 Transform:
   m_ObjectHideFlags: 0
@@ -6775,129 +6823,129 @@ MonoBehaviour:
     - id: 0
       icon: {fileID: 21300000, guid: efcda500460384a5b9ea3883aa0cbd36, type: 3}
       prefab: {fileID: -5679091414144784306, guid: 2ac3696c4ff424bb78e8df61445e7b94, type: 3}
-      fillCost: 0
+      fillCost: 2
     - id: 1
       icon: {fileID: 21300000, guid: 1d6a381b3c4664864961ef5d9120b2d3, type: 3}
       prefab: {fileID: 8503513465178604884, guid: ced80f1807eef4f419aa10057fe24f74, type: 3}
-      fillCost: 0
+      fillCost: 2
     - id: 2
       icon: {fileID: 21300000, guid: 5e9d52a037cdc4b218b66651acdc1948, type: 3}
       prefab: {fileID: 5506495518549599008, guid: 712f5655a0a284547824057e5c12165c, type: 3}
-      fillCost: 0
+      fillCost: 2
     - id: 4
       icon: {fileID: 21300000, guid: 782e541e9ffad430eaed59ed39532860, type: 3}
       prefab: {fileID: 1090827292475567734, guid: 6625156812063491c87a933c0a7fbc70, type: 3}
-      fillCost: 0
+      fillCost: 2
     - id: 5
       icon: {fileID: 21300000, guid: 38a9453e1d58c4a0a8eb513a92e301ca, type: 3}
       prefab: {fileID: 6886187355325745241, guid: d6abbdde4c1754c2dae88d2aa316da50, type: 3}
-      fillCost: 0
+      fillCost: 2
     - id: 6
       icon: {fileID: 21300000, guid: e2357a13ebb2f4190ba848d092d25316, type: 3}
       prefab: {fileID: 6662072237313242224, guid: d63edac5cbb7341a696c36956d328b17, type: 3}
-      fillCost: 0
+      fillCost: 2
     - id: 7
       icon: {fileID: 21300000, guid: 6037530cda1264c6a9ffc1cea4024825, type: 3}
       prefab: {fileID: 4602160026728178226, guid: 29d6f54715cd04a25953abaede294cc4, type: 3}
-      fillCost: 0
+      fillCost: 2
     - id: 8
       icon: {fileID: 21300000, guid: 02be4a9d40cde479d8d5f68634562c2b, type: 3}
       prefab: {fileID: 4776509445664041142, guid: b25080297c000464bb242977fa83e92d, type: 3}
-      fillCost: 0
+      fillCost: 2
     - id: 9
       icon: {fileID: 21300000, guid: 23de39f5b8c0b46f6a06d8c3ab8f6ce2, type: 3}
       prefab: {fileID: 5604444540026720188, guid: 4f7ebcce138fa423295c957f7495879f, type: 3}
-      fillCost: 0
+      fillCost: 2
     - id: 10
       icon: {fileID: 21300000, guid: 8bdea976c6e1f42b2b24f48f8c26b759, type: 3}
       prefab: {fileID: 838130501737063716, guid: b1d0d4ec6de4a403893e84ee1ac09954, type: 3}
-      fillCost: 0
+      fillCost: 2
     - id: 11
       icon: {fileID: 21300000, guid: d03d9066368854bd2a3813ef418e47d6, type: 3}
       prefab: {fileID: 4504239562780936630, guid: d0874108e5b4d42fe943a2b827a11106, type: 3}
-      fillCost: 0
+      fillCost: 2
   - id: 1
     categoryButton: {fileID: 156419069}
     items:
     - id: 0
       icon: {fileID: 21300000, guid: afe447ced10954a948ae421dadeae3f4, type: 3}
       prefab: {fileID: 6825398386145591982, guid: 3cc22c4458c944640932c57947fa565f, type: 3}
-      fillCost: 0
+      fillCost: 1
     - id: 1
       icon: {fileID: 21300000, guid: 60ec39286ef3341659238ee41872e7b8, type: 3}
       prefab: {fileID: 2852034598306734192, guid: 51e0a1654b5f04216b0c98233998b596, type: 3}
-      fillCost: 0
+      fillCost: 1
     - id: 2
       icon: {fileID: 21300000, guid: 016587a5f14be46198044a3eb4425daf, type: 3}
       prefab: {fileID: 6839092970728252880, guid: c18c7b1a3eb434fa9b5c8d7b41121b3d, type: 3}
-      fillCost: 0
+      fillCost: 1
     - id: 3
       icon: {fileID: 21300000, guid: 0329d4a8fedf643b8815bbb38f596ef3, type: 3}
       prefab: {fileID: 3554008130148736742, guid: 2fb41a45c179742619a805ba80533874, type: 3}
-      fillCost: 0
+      fillCost: 1
     - id: 5
       icon: {fileID: 21300000, guid: b1fdca2a77e244a7cad0f0291021e0ea, type: 3}
       prefab: {fileID: 8047291097182169842, guid: 241ab910c19e546a6bdbe81b3cfec166, type: 3}
-      fillCost: 0
+      fillCost: 1
     - id: 6
       icon: {fileID: 21300000, guid: e747d3214aa674120a0467ce96c95f75, type: 3}
       prefab: {fileID: 4535253712788728509, guid: f69a87043cba34506ba19a99343cfb0e, type: 3}
-      fillCost: 0
+      fillCost: 1
   - id: 2
     categoryButton: {fileID: 692151874}
     items:
     - id: 0
       icon: {fileID: 21300000, guid: 020bd3f8f9fd64fc9b59ea21e401b674, type: 3}
       prefab: {fileID: 1756026194297558885, guid: ea8777bb5fe054774b776b7da1cd0a90, type: 3}
-      fillCost: 0
+      fillCost: 1
     - id: 1
       icon: {fileID: 21300000, guid: 5936b5acee6064ad2940620507e053e4, type: 3}
       prefab: {fileID: 5732645420624605268, guid: 73e64a9d500e94323950388ebbe944f9, type: 3}
-      fillCost: 0
+      fillCost: 1
     - id: 2
       icon: {fileID: 21300000, guid: e3b8923c7235d4b4c9ed64ce1a7bdd96, type: 3}
       prefab: {fileID: 4468299506660166566, guid: 28b17101cfdb947858047dcfdf6c3c7c, type: 3}
-      fillCost: 0
+      fillCost: 1
     - id: 3
       icon: {fileID: 21300000, guid: fd684869c2c214ce4be3992bc5ccceb5, type: 3}
       prefab: {fileID: 5752101609512036727, guid: a7719539470a849759202489cd10f00d, type: 3}
-      fillCost: 0
+      fillCost: 1
     - id: 4
       icon: {fileID: 21300000, guid: 3d39ac99ac86741f0bd12f8fea9b04e8, type: 3}
       prefab: {fileID: 1967807111739553836, guid: ac4db5feae293499bb73a72fb6ea44f4, type: 3}
-      fillCost: 0
+      fillCost: 1
     - id: 5
       icon: {fileID: 21300000, guid: 166d7b2544b4345d48a5052d74d90029, type: 3}
       prefab: {fileID: 4681580817564478102, guid: 64b5aca48175b43a2b5fb25508d7a262, type: 3}
-      fillCost: 0
+      fillCost: 1
     - id: 6
       icon: {fileID: 21300000, guid: ec98929bd440247b0be8c70bbe6f7073, type: 3}
       prefab: {fileID: 7654899005113644987, guid: 88d6a19c89d6a4d0781f083b2d20cbda, type: 3}
-      fillCost: 0
+      fillCost: 1
     - id: 7
       icon: {fileID: 21300000, guid: 98e397160214b42b2be95cc865652d1b, type: 3}
       prefab: {fileID: 1214669604646992821, guid: 14021543428534c29af829af8c4f4ff1, type: 3}
-      fillCost: 0
+      fillCost: 1
     - id: 8
       icon: {fileID: 21300000, guid: bc2c13710fe834788a3ef2a3e0fbc81f, type: 3}
       prefab: {fileID: 8571556051981033937, guid: fbb00f2ff2cb54d93a620ebb35df2e70, type: 3}
-      fillCost: 0
+      fillCost: 1
     - id: 9
       icon: {fileID: 21300000, guid: 272e3d6866be84357bc651be09c59751, type: 3}
       prefab: {fileID: 8623503331078243768, guid: 282b17227e22f429fb247160f5876613, type: 3}
-      fillCost: 0
+      fillCost: 1
     - id: 10
       icon: {fileID: 21300000, guid: 0a00320ae4c384b7cb48f9f317af7849, type: 3}
       prefab: {fileID: 1580266620387381909, guid: c56e8ec1124d84516aa61f7d90825614, type: 3}
-      fillCost: 0
+      fillCost: 1
     - id: 11
       icon: {fileID: 21300000, guid: b0e2f37be25604a01a909e411dd01e98, type: 3}
       prefab: {fileID: 1344424836745742343, guid: 5c09ec83e3eb540f3a35694d36618304, type: 3}
-      fillCost: 0
+      fillCost: 1
     - id: 12
       icon: {fileID: 21300000, guid: 694d48cb9e14e40b796d1f6ca8eb1ad1, type: 3}
       prefab: {fileID: 4546890918288148007, guid: 05a7a0f4d04844e3eb1d676670610528, type: 3}
-      fillCost: 0
+      fillCost: 1
   content: {fileID: 40162498}
   buttonPrefab: {fileID: 3313545329266192991, guid: f5d9fdb21dbcf41208cecf88077c4d8c, type: 3}
   scrollViewRoot: {fileID: 1212788725}
@@ -9504,6 +9552,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1706272253}
   - component: {fileID: 1706272254}
+  - component: {fileID: 1706272255}
   m_Layer: 5
   m_Name: Content
   m_TagString: Untagged
@@ -9556,6 +9605,20 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!114 &1706272255
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1706272252}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3245ec927659c4140ac4f8d17403cc18, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_HorizontalFit: 2
+  m_VerticalFit: 0
 --- !u!1 &1724973757
 GameObject:
   m_ObjectHideFlags: 0
@@ -11734,7 +11797,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2080454586}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8448fc3f8cd954c34937b95338669246, type: 3}
   m_Name: 

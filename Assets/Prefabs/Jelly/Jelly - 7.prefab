@@ -206,12 +206,13 @@ MonoBehaviour:
   cup: {fileID: 0}
   brewAudio: {fileID: 0}
   dropBurstPrefab: {fileID: 0}
-  dropGravityScale: 1.4
+  dropGravityScale: 1.6
   dropDownVelocity: 3
   spinOnDrop: 120
   grabScale: 1.15
   returnDuration: 0.3
   draggable: 0
+  id: 
 --- !u!114 &5583342946545568622
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -225,8 +226,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cup: {fileID: 0}
-  buoyancy: 12
-  restDepth: 0.6
-  submergedDrag: 3.5
+  buoyancy: 5
+  restDepth: 5
+  submergedDrag: 5
   swayForce: 0.4
   swaySpeed: 1.3

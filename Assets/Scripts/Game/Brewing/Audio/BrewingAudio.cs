@@ -32,12 +32,29 @@ public class BrewingAudio : MonoBehaviour
     [Header("Feel")]
     [SerializeField] private Vector2 pitchJitter = new Vector2(0.92f, 1.08f);
 
+    [Tooltip("Fill any empty clip slot above with a procedurally synthesised sound (see " +
+             "ProceduralBrewingSfx). A clip assigned by hand always takes priority.")]
+    [SerializeField] private bool synthesizeMissingClips = true;
+
     private float pourTargetVol, sipTargetVol;
 
     private void Awake()
     {
+        if (synthesizeMissingClips) SynthesizeMissingClips();
         ConfigureLoop(pourSource, pourLoop);
         ConfigureLoop(sipSource, sipLoop);
+    }
+
+    /// <summary>Generate stand-in clips for any slot left empty, so the game has full ASMR audio
+    /// even before real recordings are dropped in.</summary>
+    private void SynthesizeMissingClips()
+    {
+        if (pourLoop == null)   pourLoop = ProceduralBrewingSfx.PourLoop();
+        if (sipLoop == null)    sipLoop = ProceduralBrewingSfx.SipLoop();
+        if (plop == null)       plop = ProceduralBrewingSfx.Plop();
+        if (stir == null)       stir = ProceduralBrewingSfx.Stir();
+        if (finalGulp == null)  finalGulp = ProceduralBrewingSfx.FinalGulp();
+        if (bubble == null)     bubble = ProceduralBrewingSfx.Bubble();
     }
 
     private void Update()

@@ -291,6 +291,7 @@ MonoBehaviour:
   grabScale: 1.15
   returnDuration: 0.3
   draggable: 0
+  id: 
 --- !u!114 &5538356627632394298
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -304,8 +305,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cup: {fileID: 0}
-  buoyancy: 12
-  restDepth: 0.6
-  submergedDrag: 3.5
+  buoyancy: 15
+  restDepth: 0.3
+  submergedDrag: 3
   swayForce: 0.4
   swaySpeed: 1.3
