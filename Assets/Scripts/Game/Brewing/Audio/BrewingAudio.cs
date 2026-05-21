@@ -49,12 +49,12 @@ public class BrewingAudio : MonoBehaviour
     /// even before real recordings are dropped in.</summary>
     private void SynthesizeMissingClips()
     {
-        if (pourLoop == null)   pourLoop = ProceduralBrewingSfx.PourLoop();
-        if (sipLoop == null)    sipLoop = ProceduralBrewingSfx.SipLoop();
-        if (plop == null)       plop = ProceduralBrewingSfx.Plop();
-        if (stir == null)       stir = ProceduralBrewingSfx.Stir();
-        if (finalGulp == null)  finalGulp = ProceduralBrewingSfx.FinalGulp();
-        if (bubble == null)     bubble = ProceduralBrewingSfx.Bubble();
+        if (pourLoop == null) pourLoop = ProceduralBrewingSfx.PourLoop();
+        if (sipLoop == null) sipLoop = ProceduralBrewingSfx.SipLoop();
+        if (plop == null) plop = ProceduralBrewingSfx.Plop();
+        if (stir == null) stir = ProceduralBrewingSfx.Stir();
+        if (finalGulp == null) finalGulp = ProceduralBrewingSfx.FinalGulp();
+        if (bubble == null) bubble = ProceduralBrewingSfx.Bubble();
     }
 
     private void Update()

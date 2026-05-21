@@ -9,6 +9,7 @@ public class GameBootstrapper : MonoBehaviour
     [SerializeField] private UIGame uiGame;
     [SerializeField] private UISetting uiSetting;
     [SerializeField] private BrewingManager brewingManager; // optional: brewing gameplay
+    [SerializeField] private AdMobService adServiceMono;     // optional: ads
 
     private void Awake()
     {
@@ -16,6 +17,11 @@ public class GameBootstrapper : MonoBehaviour
         IAudioService audio = audioServiceMono;
         ISceneService sceneService = sceneServiceMono;
         ISaveSystem saveSystem = new SaveSystem();
+
+        // Ads: per-scene service injected here, same pattern as audio/scene. Safe no-op until the
+        // AdMob SDK + USE_ADMOB define are in.
+        IAdService ads = adServiceMono;
+        ads?.Initialize();
 
         // Core
         ScoreModel scoreModel = new ScoreModel(saveSystem.LoadHighScore());
