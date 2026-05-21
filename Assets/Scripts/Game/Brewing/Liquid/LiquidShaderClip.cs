@@ -59,6 +59,14 @@ public class LiquidShaderClip : MonoBehaviour
                   $"shaderIsSupported={mat.shader.isSupported}");
     }
 
+    /// <summary>Swap the cup-cavity mask at runtime — called by CupController.SetCup when the player
+    /// changes cup, so the liquid clips to the new cup shape instead of the one set in the inspector.</summary>
+    public void SetMask(Sprite sprite)
+    {
+        maskSprite = sprite;
+        if (mat != null && sprite != null) mat.SetTexture(MaskTexId, sprite.texture);
+    }
+
     private void LateUpdate()
     {
         if (mat == null || maskSprite == null || maskTransform == null) return;

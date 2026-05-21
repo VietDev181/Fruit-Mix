@@ -5,18 +5,20 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Replaces the drag-from-tray flow with a vertical, scrollable menu of topping types. Each entry
-/// is shown as an icon button inside a ScrollRect; tapping a button drops one topping of that type
-/// into the cup at a random point inside the mouth (it then falls + bobs via the usual physics).
+/// Tap-to-drop topping menu with two levels:
+///   • Category buttons (Ice / Fruit / Jelly / Pearl…) — one per <see cref="ToppingCategory"/>.
+///     Pressing one loads that category's items into the scroll view.
+///   • A vertical ScrollRect whose Content is (re)populated with an icon button per topping in the
+///     selected category. Tapping a topping button drops one into the cup (physics + buoyancy).
 ///
 /// Setup in Unity:
-///   1. Build a UI ScrollRect (vertical) with a Content object that has a VerticalLayoutGroup +
-///      ContentSizeFitter (Vertical = Preferred Size).
-///   2. Make a Button prefab with an Image child for the icon, assign it to <see cref="buttonPrefab"/>
-///      and the Content RectTransform to <see cref="content"/>.
-///   3. Fill <see cref="items"/> with one entry per topping (icon sprite + DraggableTopping prefab).
-///   4. Wire cup / cam / brewAudio (or leave null to auto-find).
-/// The buttons are generated at runtime from <see cref="items"/>.
+///   1. Build a vertical ScrollRect; its Content needs a VerticalLayoutGroup + ContentSizeFitter
+///      (Vertical = Preferred Size). Assign Content to <see cref="content"/>.
+///   2. Make a Button prefab with a child Image (the icon); assign to <see cref="buttonPrefab"/>.
+///   3. Place your category buttons in the scene (Ice, Fruit, …). For each, add a
+///      <see cref="ToppingCategory"/> entry: drag the button into 'Category Button' and fill 'Items'.
+///   4. Optionally assign <see cref="scrollViewRoot"/> (the panel to show/hide) and tick
+///      <see cref="hideUntilCategoryChosen"/> so the list stays hidden until a category is tapped.
 /// </summary>
 public class ToppingMenu : MonoBehaviour
 {
@@ -33,14 +35,28 @@ public class ToppingMenu : MonoBehaviour
         public float fillCost = 1f;
     }
 
-    [Header("Menu data")]
-    [SerializeField] private ToppingMenuItem[] items;
+    [Serializable]
+    public class ToppingCategory
+    {
+        public string id;
+        [Tooltip("The scene button that loads this category into the scroll view (e.g. the 'Ice' button).")]
+        public Button categoryButton;
+        [Tooltip("Toppings shown in the scroll view when this category is selected.")]
+        public ToppingMenuItem[] items;
+    }
+
+    [Header("Categories")]
+    [SerializeField] private ToppingCategory[] categories;
 
     [Header("UI")]
     [Tooltip("Content RectTransform of the vertical ScrollRect (needs a VerticalLayoutGroup).")]
     [SerializeField] private RectTransform content;
     [Tooltip("Button prefab with a child Image used to show each topping icon.")]
     [SerializeField] private Button buttonPrefab;
+    [Tooltip("Optional root object of the scroll view, shown/hidden as categories are selected.")]
+    [SerializeField] private GameObject scrollViewRoot;
+    [Tooltip("Keep the scroll view hidden until the player taps a category button.")]
+    [SerializeField] private bool hideUntilCategoryChosen = true;
 
     [Header("Scene refs (injected into each spawned topping)")]
     [SerializeField] private CupController cup;
@@ -59,6 +75,7 @@ public class ToppingMenu : MonoBehaviour
     private readonly List<Button> spawnedButtons = new List<Button>();
     private bool interactable = true;
     private float nextDropTime;
+    private ToppingCategory activeCategory;
 
     private void Awake()
     {
@@ -68,7 +85,9 @@ public class ToppingMenu : MonoBehaviour
 
     private void Start()
     {
-        BuildButtons();
+        WireCategoryButtons();
+        if (hideUntilCategoryChosen && scrollViewRoot != null)
+            scrollViewRoot.SetActive(false);
         ApplyInteractable();
     }
 
@@ -79,8 +98,34 @@ public class ToppingMenu : MonoBehaviour
         ApplyInteractable();
     }
 
-    private void BuildButtons()
+    private void WireCategoryButtons()
     {
+        if (categories == null) return;
+        foreach (var cat in categories)
+        {
+            if (cat == null || cat.categoryButton == null) continue;
+            var captured = cat; // avoid closure capturing the loop variable
+            cat.categoryButton.onClick.AddListener(() => ShowCategory(captured));
+        }
+    }
+
+    /// <summary>Load a category's toppings into the scroll view and reveal it.</summary>
+    public void ShowCategory(ToppingCategory category)
+    {
+        if (!interactable || category == null) return;
+        activeCategory = category;
+
+        if (scrollViewRoot != null) scrollViewRoot.SetActive(true);
+        BuildButtons(category.items);
+    }
+
+    private void BuildButtons(ToppingMenuItem[] items)
+    {
+        // Clear the previous category's buttons.
+        foreach (var btn in spawnedButtons)
+            if (btn != null) Destroy(btn.gameObject);
+        spawnedButtons.Clear();
+
         if (buttonPrefab == null || content == null || items == null) return;
 
         foreach (var item in items)
@@ -95,6 +140,8 @@ public class ToppingMenu : MonoBehaviour
             btn.onClick.AddListener(() => DropTopping(captured, btn));
             spawnedButtons.Add(btn);
         }
+
+        ApplyInteractable();
     }
 
     private void SetButtonIcon(Button btn, Sprite icon)
@@ -126,7 +173,7 @@ public class ToppingMenu : MonoBehaviour
         var topping = Instantiate(item.prefab, spawnPos, Quaternion.identity);
         topping.Configure(cup, cam, brewAudio);
         topping.FillCost = item.fillCost;
-        topping.SetInteractable(true);
+        topping.SetInteractable(true); // id comes from the prefab itself (DraggableTopping.Id)
         topping.DropAt(spawnPos);
 
         // Little tactile pop on the tapped button.
@@ -155,5 +202,10 @@ public class ToppingMenu : MonoBehaviour
     {
         foreach (var btn in spawnedButtons)
             if (btn != null) btn.interactable = interactable;
+
+        if (categories != null)
+            foreach (var cat in categories)
+                if (cat != null && cat.categoryButton != null)
+                    cat.categoryButton.interactable = interactable;
     }
 }

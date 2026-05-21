@@ -31,10 +31,14 @@ public class CupController : MonoBehaviour
     [Header("Liquid")]
     [SerializeField] private LiquidController liquid;
     [SerializeField] private LiquidWobble wobble;
+    [Tooltip("Shader-based liquid clip. Its mask must follow the chosen cup, so SetCup updates it.")]
+    [SerializeField] private LiquidShaderClip liquidClip;
 
     [Header("Toppings")]
     [Tooltip("Empty transform that parents dropped toppings (also masked by the cavity).")]
     [SerializeField] private Transform toppingContainer;
+    [Tooltip("Builds wall/floor colliders matching the cup shape so toppings don't fall through.")]
+    [SerializeField] private CupCavityCollider cavityCollider;
     [Tooltip("Trigger collider matching the cavity opening; used to detect drops into the cup.")]
     [SerializeField] private Collider2D mouthTrigger;
 
@@ -54,8 +58,11 @@ public class CupController : MonoBehaviour
     {
         if (def == null) return;
 
+        Sprite mask = def.maskSprite != null ? def.maskSprite : def.cupSprite;
         if (cupBody != null) cupBody.sprite = def.cupSprite;
-        if (cavityMask != null) cavityMask.sprite = def.maskSprite != null ? def.maskSprite : def.cupSprite;
+        if (cavityMask != null) cavityMask.sprite = mask;
+        if (liquidClip != null) liquidClip.SetMask(mask); // shader clip is what actually clips the liquid
+        if (cavityCollider != null) cavityCollider.Rebuild(mask); // walls/floor follow the cup shape
 
         liquid?.ConfigureCavity(def.cavityBottomLocalY, def.cavityHeight, def.liquidWidth);
         liquid?.ResetLiquid();

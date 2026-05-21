@@ -15,7 +15,7 @@ public class BrewingManager : MonoBehaviour
     [Header("Systems")]
     [SerializeField] private CupSelector cupSelector;
     [SerializeField] private CupController cup;
-    [SerializeField] private IngredientBottle[] bottles;
+    [SerializeField] private ButtonPour[] pourButtons;
     [SerializeField] private ToppingSpawner[] toppingSpawners;
     [Tooltip("New tap-to-drop topping menu (replaces the drag-from-tray spawners).")]
     [SerializeField] private ToppingMenu toppingMenu;
@@ -101,8 +101,8 @@ public class BrewingManager : MonoBehaviour
         // skips Start() entirely, which would skip the initial SetCup() (mask sprite + cavity).
         // Cup-swap buttons are gated by phase elsewhere if needed; selection still works via methods.
 
-        if (bottles != null)
-            foreach (var b in bottles) if (b != null) b.SetInteractable(canMix);
+        if (pourButtons != null)
+            foreach (var b in pourButtons) if (b != null) b.SetInteractable(canMix);
 
         if (toppingSpawners != null)
             foreach (var s in toppingSpawners) if (s != null) s.SetInteractable(canMix);

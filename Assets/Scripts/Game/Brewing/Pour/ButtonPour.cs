@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -21,6 +22,8 @@ public class ButtonPour : MonoBehaviour, IPointerDownHandler, IPointerUpHandler,
     [SerializeField] private Transform pourOrigin;
 
     [Header("Ingredient")]
+    [Tooltip("Ingredient type id (e.g. \"tea\", \"milk\"). Used by recipe matching.")]
+    [SerializeField] private string ingredientId;
     [SerializeField] private Color liquidColor = new Color(0.85f, 0.6f, 0.35f, 1f);
     [SerializeField] private float fillRatePerSecond = 0.5f;
     [Tooltip("Minimum amount a single quick tap adds, so taps feel responsive.")]
@@ -30,8 +33,21 @@ public class ButtonPour : MonoBehaviour, IPointerDownHandler, IPointerUpHandler,
     [Tooltip("Used only when pourOrigin is not assigned: height above the cup's pour target.")]
     [SerializeField] private float fallbackHeight = 6f;
 
+    /// <summary>The ingredient's type id, exposed for recipe matching.</summary>
+    public string IngredientId => ingredientId;
+    /// <summary>Raised the moment this button starts pouring into the cup (passes its id).</summary>
+    public event Action<string> OnPourStarted;
+
     private bool pouring;
+    private bool interactable = true;
     private float pouredThisPress;
+
+    /// <summary>Enable/disable pouring for this button (driven by BrewingManager per phase).</summary>
+    public void SetInteractable(bool value)
+    {
+        interactable = value;
+        if (!value) EndPour();
+    }
 
     private Vector3 OriginPosition =>
         pourOrigin != null
@@ -44,9 +60,10 @@ public class ButtonPour : MonoBehaviour, IPointerDownHandler, IPointerUpHandler,
 
     private void BeginPour()
     {
-        if (cup == null || cup.Liquid.IsFull) return;
+        if (!interactable || cup == null || cup.Liquid.IsFull) return;
         pouring = true;
         pouredThisPress = 0f;
+        OnPourStarted?.Invoke(ingredientId);
         stream?.Begin(liquidColor);
         brewAudio?.StartPourLoop();
     }

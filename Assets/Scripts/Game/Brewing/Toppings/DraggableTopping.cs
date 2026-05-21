@@ -40,6 +40,14 @@ public class DraggableTopping : MonoBehaviour
     /// toppings fill the cup faster than small ones. Set when spawned; default 1.</summary>
     public float FillCost { get; set; } = 1f;
 
+    [Header("Identity")]
+    [Tooltip("Topping type id (e.g. \"pearl\", \"ice\"). Lives on the prefab so dropped instances and " +
+             "recipe references share it — used by recipe matching.")]
+    [SerializeField] private string id;
+
+    /// <summary>Topping type id. Serialized on the prefab; settable at runtime if needed.</summary>
+    public string Id { get => id; set => id = value; }
+
     private Rigidbody2D rb;
     private Collider2D col;
     private ToppingBuoyancy buoyancy;

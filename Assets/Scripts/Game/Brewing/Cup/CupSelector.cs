@@ -14,6 +14,8 @@ public class CupSelector : MonoBehaviour
     [SerializeField] private int startIndex = 0;
 
     public int CurrentIndex { get; private set; }
+    /// <summary>Read-only view of the cup shapes, so a UI menu can build a button per cup.</summary>
+    public IReadOnlyList<CupDefinition> Cups => cups;
     public CupDefinition Current =>
         (cups.Count > 0) ? cups[Mathf.Clamp(CurrentIndex, 0, cups.Count - 1)] : null;
 

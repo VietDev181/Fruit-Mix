@@ -2,8 +2,8 @@ using UnityEngine;
 
 /// <summary>
 /// Visual + audio of a pouring stream. A thin sprite (TOP pivot) is stretched from the bottle
-/// spout down to the liquid surface; splash particles fire where it lands and bubbles rise inside
-/// the cup. Everything is tinted to the ingredient colour. Driven by <see cref="IngredientBottle"/>.
+/// pour origin down to the liquid surface; splash particles fire where it lands and bubbles rise
+/// inside the cup. Everything is tinted to the ingredient colour. Driven by <see cref="ButtonPour"/>.
 /// </summary>
 public class PourStream : MonoBehaviour
 {

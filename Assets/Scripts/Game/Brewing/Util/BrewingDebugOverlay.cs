@@ -20,14 +20,12 @@ public class BrewingDebugOverlay : MonoBehaviour
     private LiquidController liquid;
     private CupController cup;
     private BrewingManager manager;
-    private IngredientBottle[] bottles;
 
     private void Awake()
     {
         liquid = FindObjectOfType<LiquidController>(true);
         cup = FindObjectOfType<CupController>(true);
         manager = FindObjectOfType<BrewingManager>(true);
-        bottles = FindObjectsOfType<IngredientBottle>(true);
     }
 
     private void Update()
@@ -68,16 +66,6 @@ public class BrewingDebugOverlay : MonoBehaviour
         var camMain = Camera.main;
         Vector3 ptr = DragInput2D.WorldPosition(camMain);
         GUILayout.Label($"Pointer world: ({ptr.x:0.0}, {ptr.y:0.0})  pressed={DragInput2D.IsPressed}  hasOwner={DragInput2D.HasOwner}");
-
-        if (bottles != null)
-        {
-            foreach (var b in bottles)
-            {
-                if (b == null) continue;
-                Vector3 c = b.ColliderWorldCenter;
-                GUILayout.Label($"{b.name}: over={b.PointerInsideCollider} drag={b.Dragging} POUR={b.Pouring} center=({c.x:0.0},{c.y:0.0}) dist={b.SpoutDistanceToCup:0.0}/{b.PourRadius:0.0}");
-            }
-        }
 
         var cam = Camera.main;
         GUILayout.Label(cam != null ? $"Camera: ortho={cam.orthographic} size={cam.orthographicSize}" : "Camera.main: NULL");
