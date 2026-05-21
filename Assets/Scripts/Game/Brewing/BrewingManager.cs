@@ -17,6 +17,8 @@ public class BrewingManager : MonoBehaviour
     [SerializeField] private CupController cup;
     [SerializeField] private IngredientBottle[] bottles;
     [SerializeField] private ToppingSpawner[] toppingSpawners;
+    [Tooltip("New tap-to-drop topping menu (replaces the drag-from-tray spawners).")]
+    [SerializeField] private ToppingMenu toppingMenu;
     [SerializeField] private StirController stir;
     [SerializeField] private DrinkController drink;
     [SerializeField] private BrewingAudio brewAudio;
@@ -104,6 +106,8 @@ public class BrewingManager : MonoBehaviour
 
         if (toppingSpawners != null)
             foreach (var s in toppingSpawners) if (s != null) s.SetInteractable(canMix);
+
+        toppingMenu?.SetInteractable(canMix);
 
         stir?.SetActive(canMix);
         drink?.SetActive(canDrink);

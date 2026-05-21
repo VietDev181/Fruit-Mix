@@ -30,6 +30,10 @@ public class LiquidController : MonoBehaviour
     [SerializeField] private float surfaceThickness = 0.5f;
 
     [Header("Feel")]
+    [Tooltip("Highest the liquid is allowed to rise, 0..1 of the cavity. <1 leaves headroom at the " +
+             "top so it never reaches the rim (room for toppings / no overflow look).")]
+    [Range(0.1f, 1f)]
+    [SerializeField] private float maxFill = 0.85f;
     [SerializeField] private float fillTweenDuration = 0.35f;
     [SerializeField] private Ease fillEase = Ease.OutCubic;
     [Tooltip("Starting tint before anything is poured (very light, near-empty look).")]
@@ -38,7 +42,7 @@ public class LiquidController : MonoBehaviour
     /// <summary>Current fill in 0..1.</summary>
     public float Fill { get; private set; }
     public bool IsEmpty => Fill <= 0.001f;
-    public bool IsFull => Fill >= 0.999f;
+    public bool IsFull => Fill >= maxFill - 0.001f;
     public Color CurrentColor { get; private set; }
 
     /// <summary>Raised whenever the fill changes (immediate target value, not the tweened value).</summary>
@@ -78,7 +82,8 @@ public class LiquidController : MonoBehaviour
     /// </summary>
     public void AddLiquid(float volume, Color color)
     {
-        float newFill = Mathf.Clamp01(Fill + volume);
+        // Cap at maxFill (not 1) so the drink stops below the rim.
+        float newFill = Mathf.Clamp(Fill + volume, 0f, maxFill);
         float added = newFill - Fill;
         if (added <= 0f) return;
 

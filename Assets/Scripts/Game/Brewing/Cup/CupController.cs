@@ -86,6 +86,21 @@ public class CupController : MonoBehaviour
         return mouthTrigger != null && mouthTrigger.OverlapPoint(worldPoint);
     }
 
+    /// <summary>
+    /// A random world point just inside the cup mouth to drop a topping into. X is randomised across
+    /// the mouth width (minus padding so it never clips the rim); Y sits at the top of the mouth so
+    /// the topping falls in. Falls back to the pour target if no mouth trigger is wired.
+    /// </summary>
+    public Vector3 RandomDropPointInMouth(float horizontalPadding = 0.2f)
+    {
+        if (mouthTrigger == null) return PourTargetPosition;
+
+        Bounds b = mouthTrigger.bounds;
+        float halfPad = Mathf.Min(horizontalPadding, b.extents.x * 0.9f);
+        float x = UnityEngine.Random.Range(b.min.x + halfPad, b.max.x - halfPad);
+        return new Vector3(x, b.max.y, transform.position.z);
+    }
+
     public void ClearToppings()
     {
         if (toppingContainer == null) return;

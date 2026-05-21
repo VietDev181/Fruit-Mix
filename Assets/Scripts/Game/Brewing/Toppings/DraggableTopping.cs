@@ -21,15 +21,24 @@ public class DraggableTopping : MonoBehaviour
 
     [Header("Physics on drop")]
     [SerializeField] private float dropGravityScale = 1.4f;
-    [SerializeField] private float dropDownVelocity = 3f;
-    [SerializeField] private float spinOnDrop = 120f;
+    [SerializeField] private float dropDownVelocity = 1.2f;
+    [SerializeField] private float spinOnDrop = 40f;
 
     [Header("Feel")]
     [SerializeField] private float grabScale = 1.15f;
     [SerializeField] private float returnDuration = 0.3f;
 
+    [Header("Input mode")]
+    [Tooltip("Old flow: player drags this topping from a tray into the cup. Turn OFF when the topping " +
+             "is spawned by ToppingMenu and dropped on a button press (no dragging).")]
+    [SerializeField] private bool draggable = true;
+
     /// <summary>Raised when this topping is committed into the cup (so a spawner can refill the slot).</summary>
     public event Action<DraggableTopping> OnConsumed;
+
+    /// <summary>How much cup space this topping takes up — used by ToppingMenu to cap the fill so big
+    /// toppings fill the cup faster than small ones. Set when spawned; default 1.</summary>
+    public float FillCost { get; set; } = 1f;
 
     private Rigidbody2D rb;
     private Collider2D col;
@@ -66,9 +75,22 @@ public class DraggableTopping : MonoBehaviour
         if (audioRef != null) brewAudio = audioRef;
     }
 
+    /// <summary>
+    /// Spawn-and-drop entry point for the no-drag flow (ToppingMenu). Places the topping at
+    /// <paramref name="worldPos"/> then immediately commits it into the cup with the usual physics
+    /// + juicy feedback. No tray, no dragging.
+    /// </summary>
+    public void DropAt(Vector3 worldPos)
+    {
+        if (consumed) return;
+        transform.position = worldPos;
+        homePosition = worldPos;
+        DropIntoCup(worldPos);
+    }
+
     private void Update()
     {
-        if (consumed || !interactable) return;
+        if (consumed || !interactable || !draggable) return;
 
         if (!dragging && DragInput2D.PressedThisFrame && !DragInput2D.HasOwner)
         {
@@ -103,8 +125,12 @@ public class DraggableTopping : MonoBehaviour
         DragInput2D.Release(this);
         transform.DOScale(1f, 0.15f);
 
+        // Forgiving drop test: count it as "in the cup" if EITHER the topping centre OR the
+        // pointer is inside the mouth. Grabbing a topping by its edge offsets the body from the
+        // finger, so checking only the centre made drops feel random ("lúc được lúc không").
         Vector3 pos = transform.position;
-        if (cup != null && cup.IsInsideMouth(pos))
+        Vector3 pointer = DragInput2D.WorldPosition(cam);
+        if (cup != null && (cup.IsInsideMouth(pos) || cup.IsInsideMouth(pointer)))
             DropIntoCup(pos);
         else
             ReturnToTray();
