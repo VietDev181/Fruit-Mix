@@ -226,7 +226,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cup: {fileID: 0}
-  buoyancy: 5
+  buoyancy: 0
   restDepth: 5
   submergedDrag: 5
   swayForce: 0.4

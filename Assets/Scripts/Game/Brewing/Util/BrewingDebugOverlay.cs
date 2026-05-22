@@ -18,13 +18,11 @@ public class BrewingDebugOverlay : MonoBehaviour
     [SerializeField] private float addPerPress = 0.15f;
 
     private LiquidController liquid;
-    private CupController cup;
     private BrewingManager manager;
 
     private void Awake()
     {
         liquid = FindObjectOfType<LiquidController>(true);
-        cup = FindObjectOfType<CupController>(true);
         manager = FindObjectOfType<BrewingManager>(true);
     }
 

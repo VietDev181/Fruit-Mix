@@ -29,4 +29,27 @@ public interface IAdService
 
     /// <summary>Show the App Open ad if one is loaded and nothing else is on screen.</summary>
     void ShowAppOpenIfReady();
+
+    // --- Banner (small persistent ad, e.g. on menu screens) --------------------------------------
+
+    /// <summary>Create + show a bottom banner (loads it if needed). Safe to call repeatedly.</summary>
+    void ShowBanner();
+
+    /// <summary>Hide the banner (e.g. when entering gameplay).</summary>
+    void HideBanner();
+
+    // --- Rewarded (watch a full ad to earn a reward) ---------------------------------------------
+
+    /// <summary>True when a rewarded ad is loaded and ready to show.</summary>
+    bool IsRewardedReady { get; }
+
+    /// <summary>Pre-load a rewarded ad.</summary>
+    void LoadRewarded();
+
+    /// <summary>
+    /// Show a rewarded ad. <paramref name="onRewardEarned"/> fires ONLY if the player watches enough to
+    /// earn the reward; <paramref name="onClosed"/> always fires when the ad is dismissed (or none was
+    /// available) so the UI can re-enable itself.
+    /// </summary>
+    void ShowRewarded(Action onRewardEarned, Action onClosed = null);
 }

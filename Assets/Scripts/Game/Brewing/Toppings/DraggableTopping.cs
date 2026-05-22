@@ -14,7 +14,7 @@ public class DraggableTopping : MonoBehaviour
 {
     [Header("Refs")]
     [SerializeField] private Camera cam;
-    [SerializeField] private CupController cup;
+    [SerializeField] private DrinkContainer container;
     [SerializeField] private BrewingAudio brewAudio;
     [Tooltip("Optional one-shot particle burst spawned at the splash point on drop.")]
     [SerializeField] private ParticleSystem dropBurstPrefab;
@@ -76,16 +76,17 @@ public class DraggableTopping : MonoBehaviour
     }
 
     /// <summary>Inject scene dependencies — needed because prefabs can't reference scene objects.</summary>
-    public void Configure(CupController cupRef, Camera camRef, BrewingAudio audioRef)
+    public void Configure(DrinkContainer containerRef, Camera camRef, BrewingAudio audioRef)
     {
-        if (cupRef != null) cup = cupRef;
+        if (containerRef != null) container = containerRef;
         if (camRef != null) cam = camRef;
         if (audioRef != null) brewAudio = audioRef;
+        if (buoyancy != null) buoyancy.SetContainer(container); // so buoyancy knows the liquid surface
     }
 
     /// <summary>
     /// Spawn-and-drop entry point for the no-drag flow (ToppingMenu). Places the topping at
-    /// <paramref name="worldPos"/> then immediately commits it into the cup with the usual physics
+    /// <paramref name="worldPos"/> then immediately commits it into the drink with the usual physics
     /// + juicy feedback. No tray, no dragging.
     /// </summary>
     public void DropAt(Vector3 worldPos)
@@ -138,7 +139,7 @@ public class DraggableTopping : MonoBehaviour
         // finger, so checking only the centre made drops feel random ("lúc được lúc không").
         Vector3 pos = transform.position;
         Vector3 pointer = DragInput2D.WorldPosition(cam);
-        if (cup != null && (cup.IsInsideMouth(pos) || cup.IsInsideMouth(pointer)))
+        if (container != null && (container.IsInsideMouth(pos) || container.IsInsideMouth(pointer)))
             DropIntoCup(pos);
         else
             ReturnToTray();
@@ -147,8 +148,8 @@ public class DraggableTopping : MonoBehaviour
     private void DropIntoCup(Vector3 dropPos)
     {
         consumed = true;
-        if (cup.ToppingContainer != null)
-            transform.SetParent(cup.ToppingContainer, true);
+        if (container.ToppingContainer != null)
+            transform.SetParent(container.ToppingContainer, true);
 
         rb.bodyType = RigidbodyType2D.Dynamic;
         rb.gravityScale = dropGravityScale;
@@ -160,10 +161,10 @@ public class DraggableTopping : MonoBehaviour
         // Juicy feedback: squash on impact-ish, plop sound, splash burst, liquid slosh.
         transform.DOPunchScale(new Vector3(0.25f, -0.25f, 0f), 0.3f, 8, 0.6f);
         brewAudio?.PlayPlop();
-        cup.Wobble?.AddImpulse(0.25f);
+        container.Wobble?.AddImpulse(0.25f);
         if (dropBurstPrefab != null)
         {
-            var burst = Instantiate(dropBurstPrefab, cup.Liquid.SurfaceWorldPosition, Quaternion.identity);
+            var burst = Instantiate(dropBurstPrefab, container.Liquid.SurfaceWorldPosition, Quaternion.identity);
             burst.Play();
             Destroy(burst.gameObject, 2f);
         }

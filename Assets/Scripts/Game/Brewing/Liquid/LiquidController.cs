@@ -72,6 +72,13 @@ public class LiquidController : MonoBehaviour
     /// <summary>Local Y of the liquid surface for the current fill — used for topping buoyancy.</summary>
     public float SurfaceLocalY => bottomLocalY + Fill * cavityHeight;
 
+    /// <summary>Local Y of the cavity bottom (where the liquid starts rising from).</summary>
+    public float BottomLocalY => bottomLocalY;
+    /// <summary>Horizontal span of the liquid body, in local units.</summary>
+    public float BodyWidth => bodyWidth;
+    /// <summary>Height of the filled liquid column for the current fill, in local units.</summary>
+    public float FilledHeightLocal => Fill * cavityHeight;
+
     /// <summary>World position of the liquid surface centre.</summary>
     public Vector3 SurfaceWorldPosition =>
         transform.TransformPoint(new Vector3(0f, SurfaceLocalY, 0f));

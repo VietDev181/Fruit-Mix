@@ -1,101 +1,65 @@
 using System;
-using DG.Tweening;
 using UnityEngine;
 
 /// <summary>
-/// Drag the finished cup upward (toward the "mouth") to drink it: the cup tilts, the liquid drains
-/// in proportion to how far it's lifted, a slurp/straw ASMR loop plays, and toppings sink as the
-/// surface drops. Empties to <see cref="OnEmptied"/>. Active during the Drink phase only.
+/// Cup-less drinking: TILT THE PHONE to drink. The further the device is tilted past a dead-zone, the
+/// faster the screen-fill liquid drains, the liquid leans toward the tilt, and a slurp/straw ASMR loop
+/// plays. Empties to <see cref="OnEmptied"/>. Active during the Drink phase only.
+///
+/// On desktop / in the editor (no usable accelerometer) hold <see cref="editorDrinkKey"/> to drain so
+/// the flow stays testable.
 /// </summary>
 public class DrinkController : MonoBehaviour
 {
-    [SerializeField] private Camera cam;
-    [SerializeField] private CupController cup;
-    [Tooltip("The transform that moves when drinking (usually the cup root).")]
-    [SerializeField] private Transform cupRoot;
-    [Tooltip("Collider used to grab the cup.")]
-    [SerializeField] private Collider2D cupCollider;
+    [SerializeField] private DrinkContainer container;
     [SerializeField] private BrewingAudio brewAudio;
 
-    [Header("Drink feel")]
-    [Tooltip("How far the cup must be lifted above home before it starts draining.")]
-    [SerializeField] private float liftThreshold = 0.6f;
-    [Tooltip("Max fraction of the cup drained per second at full lift.")]
+    [Header("Tilt to drink")]
+    [Tooltip("Tilt magnitude (0..1, |Input.acceleration.x|) below which nothing drains — the resting " +
+             "dead-zone so holding the phone normally doesn't drink.")]
+    [SerializeField] private float tiltDeadZone = 0.25f;
+    [Tooltip("Tilt magnitude at which the liquid drains at full speed.")]
+    [SerializeField] private float tiltForFullDrain = 0.7f;
+    [Tooltip("Max fraction of the drink drained per second at full tilt.")]
     [SerializeField] private float drainRatePerSecond = 0.5f;
-    [Tooltip("Cup tilt (deg) at full lift, simulating tipping toward the mouth.")]
-    [SerializeField] private float maxTilt = 22f;
-    [SerializeField] private float liftForFullDrain = 2.5f;
-    [SerializeField] private float returnDuration = 0.35f;
+
+    [Header("Editor fallback")]
+    [Tooltip("Hold this key to drink when there is no accelerometer (editor / desktop).")]
+    [SerializeField] private KeyCode editorDrinkKey = KeyCode.D;
 
     public event Action OnEmptied;
 
     private bool active;
-    private bool dragging;
     private bool sipping;
     private bool emptied;
-    private Vector3 homePosition;
-    private Vector3 grabOffset;
 
-    private void Awake()
-    {
-        if (cam == null) cam = Camera.main;
-        if (cupRoot == null) cupRoot = cup != null ? cup.transform : transform;
-        homePosition = cupRoot.position;
-    }
+    private LiquidController Liquid => container != null ? container.Liquid : null;
 
     public void SetActive(bool value)
     {
         active = value;
-        if (!active && dragging) EndDrag();
+        if (!active) StopSip();
     }
 
-    public void CaptureHome() => homePosition = cupRoot.position;
+    /// <summary>Kept for API compatibility with BrewingManager; no-op in the screen-fill flow.</summary>
+    public void CaptureHome() { }
 
     private void Update()
     {
         if (!active || emptied) return;
 
-        if (!dragging && DragInput2D.PressedThisFrame && !DragInput2D.HasOwner)
-        {
-            Vector3 p = DragInput2D.WorldPosition(cam);
-            if (cupCollider != null && cupCollider.OverlapPoint(p) && DragInput2D.TryClaim(this))
-            {
-                dragging = true;
-                grabOffset = cupRoot.position - p;
-            }
-        }
+        float tilt = CurrentTilt();
+        float t = Mathf.Clamp01((tilt - tiltDeadZone) / Mathf.Max(0.01f, tiltForFullDrain - tiltDeadZone));
 
-        if (!dragging) return;
-
-        if (DragInput2D.ReleasedThisFrame || !DragInput2D.IsOwner(this))
-        {
-            EndDrag();
-            return;
-        }
-
-        DrinkTick();
-    }
-
-    private void DrinkTick()
-    {
-        Vector3 target = DragInput2D.WorldPosition(cam) + grabOffset;
-        target.x = homePosition.x;          // constrain to vertical drinking motion
-        target.z = homePosition.z;
-        cupRoot.position = Vector3.Lerp(cupRoot.position, target, 0.5f);
-
-        float lift = cupRoot.position.y - homePosition.y;
-        float t = Mathf.Clamp01((lift - liftThreshold) / Mathf.Max(0.01f, liftForFullDrain - liftThreshold));
-
-        cupRoot.localRotation = Quaternion.Euler(0f, 0f, -maxTilt * t);
-
-        bool shouldSip = t > 0f && !cup.Liquid.IsEmpty;
+        var l = Liquid;
+        bool shouldSip = t > 0f && l != null && !l.IsEmpty;
         if (shouldSip)
         {
-            cup.Liquid.DrainLiquid(drainRatePerSecond * t * Time.deltaTime);
-            cup.Wobble?.AddImpulse(0.03f * t);
+            l.DrainLiquid(drainRatePerSecond * t * Time.deltaTime);
+            container.Wobble?.AddImpulse(0.03f * t);
             if (!sipping) { brewAudio?.StartSipLoop(); sipping = true; }
 
-            if (cup.Liquid.IsEmpty)
+            if (l.IsEmpty)
             {
                 emptied = true;
                 StopSip();
@@ -109,13 +73,11 @@ public class DrinkController : MonoBehaviour
         }
     }
 
-    private void EndDrag()
+    /// <summary>Tilt magnitude in 0..1 from the device side-tilt, or the hold key in the editor.</summary>
+    private float CurrentTilt()
     {
-        dragging = false;
-        DragInput2D.Release(this);
-        StopSip();
-        cupRoot.DOMove(homePosition, returnDuration).SetEase(Ease.OutBack);
-        cupRoot.DOLocalRotateQuaternion(Quaternion.identity, returnDuration).SetEase(Ease.OutCubic);
+        if (Input.GetKey(editorDrinkKey)) return 1f;
+        return Mathf.Clamp01(Mathf.Abs(Input.acceleration.x));
     }
 
     private void StopSip()
@@ -129,12 +91,5 @@ public class DrinkController : MonoBehaviour
     {
         emptied = false;
         StopSip();
-        if (cupRoot != null)
-        {
-            cupRoot.position = homePosition;
-            cupRoot.localRotation = Quaternion.identity;
-        }
     }
-
-    private void OnDestroy() => DragInput2D.Release(this);
 }

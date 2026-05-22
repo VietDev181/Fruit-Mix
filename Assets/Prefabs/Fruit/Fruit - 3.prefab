@@ -53,6 +53,8 @@ SpriteRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -96,6 +98,7 @@ PolygonCollider2D:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8716200604478878995}
   m_Enabled: 1
+  serializedVersion: 3
   m_Density: 1
   m_Material: {fileID: 0}
   m_IncludeLayers:
@@ -119,7 +122,8 @@ PolygonCollider2D:
     m_Bits: 4294967295
   m_IsTrigger: 0
   m_UsedByEffector: 0
-  m_UsedByComposite: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
@@ -201,7 +205,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cam: {fileID: 0}
-  cup: {fileID: 0}
+  container: {fileID: 0}
   brewAudio: {fileID: 0}
   dropBurstPrefab: {fileID: 0}
   dropGravityScale: 1.4
@@ -223,8 +227,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f369c3d031d094a1da9867b84698c8af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cup: {fileID: 0}
-  buoyancy: 8
+  container: {fileID: 0}
+  buoyancy: 5
   restDepth: 1.4
   submergedDrag: 3.5
   swayForce: 0.4

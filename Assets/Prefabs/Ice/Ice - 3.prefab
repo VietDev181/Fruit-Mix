@@ -287,7 +287,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cam: {fileID: 0}
-  cup: {fileID: 0}
+  container: {fileID: 0}
   brewAudio: {fileID: 0}
   dropBurstPrefab: {fileID: 0}
   dropGravityScale: 1.4
@@ -309,8 +309,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f369c3d031d094a1da9867b84698c8af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cup: {fileID: 0}
-  buoyancy: 15
+  container: {fileID: 0}
+  buoyancy: 14
   restDepth: 0.3
   submergedDrag: 3
   swayForce: 0.4
