@@ -13,22 +13,17 @@ using UnityEngine.EventSystems;
 /// </summary>
 public class ButtonPour : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerExitHandler
 {
-    [Header("Refs")]
-    [Tooltip("Optional cup hub. Leave EMPTY for the screen-fill flow (no cup); assign the Liquid + " +
-             "Wobble below instead.")]
-    [SerializeField] private CupController cup;
-
-    [Header("Direct target (used only when Cup is empty)")]
-    [Tooltip("Liquid to pour into when there is no cup (screen-fill flow).")]
+    [Header("Target (screen-fill liquid)")]
+    [Tooltip("Liquid to pour into (the screen-fill liquid).")]
     [SerializeField] private LiquidController liquid;
-    [Tooltip("Optional sloshing for the direct-liquid flow.")]
+    [Tooltip("Optional sloshing for the liquid.")]
     [SerializeField] private LiquidWobble wobble;
 
     [Header("FX")]
     [SerializeField] private PourStream stream;
     [SerializeField] private BrewingAudio brewAudio;
     [Tooltip("WORLD-space empty at the top of the screen; the stream starts here. If empty, falls " +
-             "back to a point above the cup's pour target, or above the liquid surface.")]
+             "back to a point above the liquid surface.")]
     [SerializeField] private Transform pourOrigin;
 
     [Header("Ingredient")]
@@ -40,7 +35,7 @@ public class ButtonPour : MonoBehaviour, IPointerDownHandler, IPointerUpHandler,
     [SerializeField] private float minPourPerTap = 0.06f;
 
     [Header("Fallback origin")]
-    [Tooltip("Used only when pourOrigin is not assigned: height above the cup's pour target.")]
+    [Tooltip("Used only when pourOrigin is not assigned: height above the liquid surface.")]
     [SerializeField] private float fallbackHeight = 6f;
 
     /// <summary>The ingredient's type id, exposed for recipe matching.</summary>
@@ -52,9 +47,9 @@ public class ButtonPour : MonoBehaviour, IPointerDownHandler, IPointerUpHandler,
     private bool interactable = true;
     private float pouredThisPress;
 
-    /// <summary>The liquid this button pours into: the cup's liquid, or the directly-assigned one.</summary>
-    private LiquidController Liquid => cup != null ? cup.Liquid : liquid;
-    private LiquidWobble Wobble => cup != null ? cup.Wobble : wobble;
+    /// <summary>The liquid this button pours into (the screen-fill liquid).</summary>
+    private LiquidController Liquid => liquid;
+    private LiquidWobble Wobble => wobble;
 
     /// <summary>Enable/disable pouring for this button (driven by BrewingManager per phase).</summary>
     public void SetInteractable(bool value)
@@ -68,7 +63,6 @@ public class ButtonPour : MonoBehaviour, IPointerDownHandler, IPointerUpHandler,
         get
         {
             if (pourOrigin != null) return pourOrigin.position;
-            if (cup != null) return cup.PourTargetPosition + Vector3.up * fallbackHeight;
             var l = Liquid;
             if (l != null) return l.SurfaceWorldPosition + Vector3.up * fallbackHeight;
             return transform.position;

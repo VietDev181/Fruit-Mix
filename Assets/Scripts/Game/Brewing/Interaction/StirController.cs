@@ -9,8 +9,8 @@ using UnityEngine;
 public class StirController : MonoBehaviour
 {
     [SerializeField] private Camera cam;
-    [SerializeField] private CupController cup;
-    [Tooltip("Collider covering the cup area where stirring is detected.")]
+    [SerializeField] private DrinkContainer container;
+    [Tooltip("Collider covering the area where stirring is detected.")]
     [SerializeField] private Collider2D stirZone;
     [SerializeField] private BrewingAudio brewAudio;
 
@@ -71,12 +71,12 @@ public class StirController : MonoBehaviour
         float velocity = (x - lastX) / dt; // signed swipe speed in units/sec
         lastX = x;
 
-        cup.Wobble?.AddDirectionalForce(Mathf.Clamp(velocity, -8f, 8f) * liquidForceFactor * 0.02f);
+        container.Wobble?.AddDirectionalForce(Mathf.Clamp(velocity, -8f, 8f) * liquidForceFactor * 0.02f);
 
-        if (cup.ToppingContainer != null)
+        if (container.ToppingContainer != null)
         {
             float impulse = Mathf.Clamp(velocity, -8f, 8f) * toppingForceFactor;
-            var toppings = cup.ToppingContainer.GetComponentsInChildren<ToppingBuoyancy>();
+            var toppings = container.ToppingContainer.GetComponentsInChildren<ToppingBuoyancy>();
             foreach (var t in toppings)
                 t.AddStirImpulse(new Vector2(impulse, Mathf.Abs(impulse) * 0.3f));
         }

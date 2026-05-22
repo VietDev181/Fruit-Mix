@@ -49,5 +49,9 @@ MonoBehaviour:
   iosInterstitialId: 
   androidAppOpenId: 
   iosAppOpenId: 
+  androidBannerId: 
+  iosBannerId: 
+  androidRewardedId: 
+  iosRewardedId: 
   minSecondsBetweenInterstitials: 60
   showDebugButtons: 0

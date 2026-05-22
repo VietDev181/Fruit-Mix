@@ -3,8 +3,8 @@ using UnityEngine;
 
 /// <summary>
 /// Keeps one draggable topping waiting in a tray slot. When the current topping is dropped into the
-/// cup it spawns a fresh one with a little pop, so the tray always looks stocked. Wire the prefab's
-/// CupController / Camera / BrewingAudio references on the prefab itself (or let them auto-find).
+/// drink it spawns a fresh one with a little pop, so the tray always looks stocked. Wire the prefab's
+/// DrinkContainer / Camera / BrewingAudio references on the prefab itself (or let them auto-find).
 /// </summary>
 public class ToppingSpawner : MonoBehaviour
 {
@@ -13,7 +13,7 @@ public class ToppingSpawner : MonoBehaviour
     [SerializeField] private Transform slot;
     [SerializeField] private float spawnPopDuration = 0.25f;
     [Tooltip("Wire dependencies onto each spawned instance (leave null to use prefab values).")]
-    [SerializeField] private CupController cup;
+    [SerializeField] private DrinkContainer container;
     [SerializeField] private Camera cam;
     [SerializeField] private BrewingAudio brewAudio;
 
@@ -38,7 +38,7 @@ public class ToppingSpawner : MonoBehaviour
         if (toppingPrefab == null) return;
 
         current = Instantiate(toppingPrefab, slot.position, slot.rotation, slot);
-        current.Configure(cup, cam, brewAudio);
+        current.Configure(container, cam, brewAudio);
         current.SetInteractable(interactable);
         current.OnConsumed += HandleConsumed;
 

@@ -59,18 +59,20 @@ public class ToppingMenu : MonoBehaviour
     [SerializeField] private bool hideUntilCategoryChosen = true;
 
     [Header("Scene refs (injected into each spawned topping)")]
-    [SerializeField] private CupController cup;
+    [SerializeField] private DrinkContainer container;
     [SerializeField] private Camera cam;
     [SerializeField] private BrewingAudio brewAudio;
 
     [Header("Drop")]
-    [Tooltip("Fixed point toppings drop from. Leave null to use the cup's pour target (top-centre).")]
+    [Tooltip("Fixed point toppings drop from. Leave null to use the screen's top-centre.")]
     [SerializeField] private Transform dropPoint;
     [Tooltip("Briefly block re-tapping after a drop so a single tap = one topping.")]
     [SerializeField] private float dropCooldown = 0.15f;
     [Tooltip("Total topping space the cup holds. A drop is blocked when the sum of toppings' FillCost " +
              "would exceed this — so many small toppings or few big ones. 0 = no limit.")]
     [SerializeField] private float capacity = 12f;
+    [Tooltip("Hard cap on how many toppings can exist at once (anti-spam / anti-lag). 0 = no limit.")]
+    [SerializeField] private int maxToppings = 40;
 
     private readonly List<Button> spawnedButtons = new List<Button>();
     private bool interactable = true;
@@ -80,7 +82,7 @@ public class ToppingMenu : MonoBehaviour
     private void Awake()
     {
         if (cam == null) cam = Camera.main;
-        if (cup == null) cup = FindObjectOfType<CupController>();
+        if (container == null) container = FindObjectOfType<DrinkContainer>();
     }
 
     private void Start()
@@ -109,14 +111,31 @@ public class ToppingMenu : MonoBehaviour
         }
     }
 
-    /// <summary>Load a category's toppings into the scroll view and reveal it.</summary>
+    /// <summary>
+    /// Load a category's toppings into the scroll view and reveal it. Tapping the category that is
+    /// already open closes the scroll view again (toggle).
+    /// </summary>
     public void ShowCategory(ToppingCategory category)
     {
         if (!interactable || category == null) return;
-        activeCategory = category;
 
+        bool isOpen = scrollViewRoot == null || scrollViewRoot.activeSelf;
+        if (isOpen && category == activeCategory)
+        {
+            HideScrollView();
+            return;
+        }
+
+        activeCategory = category;
         if (scrollViewRoot != null) scrollViewRoot.SetActive(true);
         BuildButtons(category.items);
+    }
+
+    /// <summary>Hide the scroll view and clear which category is active.</summary>
+    public void HideScrollView()
+    {
+        activeCategory = null;
+        if (scrollViewRoot != null) scrollViewRoot.SetActive(false);
     }
 
     private void BuildButtons(ToppingMenuItem[] items)
@@ -135,6 +154,10 @@ public class ToppingMenu : MonoBehaviour
             Button btn = Instantiate(buttonPrefab, content);
             btn.gameObject.SetActive(true);
             SetButtonIcon(btn, item.icon);
+
+            // Pop each icon in with a slight stagger so the list "unrolls" instead of snapping.
+            btn.transform.localScale = Vector3.zero;
+            btn.transform.DOScale(1f, 0.25f).SetEase(Ease.OutBack).SetDelay(spawnedButtons.Count * 0.04f);
 
             var captured = item; // avoid closure capturing the loop variable
             btn.onClick.AddListener(() => DropTopping(captured, btn));
@@ -161,17 +184,24 @@ public class ToppingMenu : MonoBehaviour
 
     private void DropTopping(ToppingMenuItem item, Button source)
     {
-        if (!interactable || cup == null || item.prefab == null) return;
+        if (!interactable || container == null || item.prefab == null) return;
         if (Time.unscaledTime < nextDropTime) return;
 
-        // Block the drop if it would push the cup past its space budget (big toppings cost more).
+        // Block the drop if it would push the drink past its space budget (big toppings cost more).
         if (capacity > 0f && CurrentFill() + item.fillCost > capacity) return;
+
+        // Hard count cap: never let the scene fill with toppings (physics lag / spam guard).
+        if (maxToppings > 0)
+        {
+            Transform parent = container.ToppingContainer;
+            if (parent != null && parent.childCount >= maxToppings) return;
+        }
 
         nextDropTime = Time.unscaledTime + dropCooldown;
 
-        Vector3 spawnPos = dropPoint != null ? dropPoint.position : cup.PourTargetPosition;
+        Vector3 spawnPos = dropPoint != null ? dropPoint.position : container.PourTargetPosition;
         var topping = Instantiate(item.prefab, spawnPos, Quaternion.identity);
-        topping.Configure(cup, cam, brewAudio);
+        topping.Configure(container, cam, brewAudio);
         topping.FillCost = item.fillCost;
         topping.SetInteractable(true); // id comes from the prefab itself (DraggableTopping.Id)
         topping.DropAt(spawnPos);
@@ -186,13 +216,13 @@ public class ToppingMenu : MonoBehaviour
     /// clearing the cup (new round) frees the space automatically.</summary>
     private float CurrentFill()
     {
-        Transform container = cup != null ? cup.ToppingContainer : null;
-        if (container == null) return 0f;
+        Transform parent = container != null ? container.ToppingContainer : null;
+        if (parent == null) return 0f;
 
         float total = 0f;
-        for (int i = 0; i < container.childCount; i++)
+        for (int i = 0; i < parent.childCount; i++)
         {
-            var t = container.GetChild(i).GetComponent<DraggableTopping>();
+            var t = parent.GetChild(i).GetComponent<DraggableTopping>();
             if (t != null) total += t.FillCost;
         }
         return total;

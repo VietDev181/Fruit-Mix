@@ -13,8 +13,7 @@ using UnityEngine;
 public class BrewingManager : MonoBehaviour
 {
     [Header("Systems")]
-    [SerializeField] private CupSelector cupSelector;
-    [SerializeField] private CupController cup;
+    [SerializeField] private DrinkContainer container;
     [SerializeField] private ButtonPour[] pourButtons;
     [SerializeField] private ToppingSpawner[] toppingSpawners;
     [Tooltip("New tap-to-drop topping menu (replaces the drag-from-tray spawners).")]
@@ -27,12 +26,7 @@ public class BrewingManager : MonoBehaviour
     [Tooltip("Score granted to the app GameService each time a drink is finished.")]
     [SerializeField] private int scorePerDrink = 10;
 
-    [Header("Testing")]
-    [Tooltip("Skip the SelectCup gate and open the mixing phase immediately on Play, so you can " +
-             "pour/add toppings without wiring a Start button. Turn off for the real flow.")]
-    [SerializeField] private bool autoStartMixing = false;
-
-    public BrewingPhase Phase { get; private set; } = BrewingPhase.SelectCup;
+    public BrewingPhase Phase { get; private set; } = BrewingPhase.Pour;
 
     /// <summary>Raised whenever the phase changes — hook UI hints / button visibility here.</summary>
     public event Action<BrewingPhase> OnPhaseChanged;
@@ -42,10 +36,8 @@ public class BrewingManager : MonoBehaviour
     private void Start()
     {
         if (drink != null) drink.OnEmptied += HandleEmptied;
-        SetPhase(BrewingPhase.SelectCup);
-
-        if (autoStartMixing)
-            BeginMixing(); // testing shortcut: bottles + toppings + stir active right away
+        // No cup to choose — open the free mixing phase right away (pour + topping + stir).
+        BeginMixing();
     }
 
     /// <summary>Optional injection from the bootstrapper so finishing a drink awards score.</summary>
@@ -53,26 +45,26 @@ public class BrewingManager : MonoBehaviour
 
     // --- UI-facing transitions --------------------------------------------------------------------
 
-    /// <summary>Confirm the chosen cup and open the free mixing phase (pour + topping + stir).</summary>
+    /// <summary>Open the free mixing phase (pour + topping + stir).</summary>
     public void BeginMixing()
     {
         if (drink != null) drink.CaptureHome();
         SetPhase(BrewingPhase.Pour);
     }
 
-    /// <summary>Switch to the drinking phase. Only meaningful once there is liquid in the cup.</summary>
+    /// <summary>Switch to the drinking phase. Only meaningful once there is liquid in the drink.</summary>
     public void BeginDrinking()
     {
-        if (cup != null && cup.Liquid.IsEmpty) return; // nothing to drink yet
+        if (container != null && container.Liquid != null && container.Liquid.IsEmpty) return; // nothing to drink yet
         SetPhase(BrewingPhase.Drink);
     }
 
-    /// <summary>Reset everything and start a fresh cup.</summary>
+    /// <summary>Reset everything and start a fresh drink.</summary>
     public void StartNewCup()
     {
         drink?.ResetDrink();
-        cup?.ResetCup();
-        SetPhase(BrewingPhase.SelectCup);
+        container?.ResetContainer();
+        SetPhase(BrewingPhase.Pour);
     }
 
     // --- Internals --------------------------------------------------------------------------------
@@ -96,10 +88,6 @@ public class BrewingManager : MonoBehaviour
                       phase == BrewingPhase.Topping ||
                       phase == BrewingPhase.Stir;
         bool canDrink = phase == BrewingPhase.Drink;
-
-        // NOTE: don't toggle cupSelector.enabled — disabling a component before its Start() runs
-        // skips Start() entirely, which would skip the initial SetCup() (mask sprite + cavity).
-        // Cup-swap buttons are gated by phase elsewhere if needed; selection still works via methods.
 
         if (pourButtons != null)
             foreach (var b in pourButtons) if (b != null) b.SetInteractable(canMix);

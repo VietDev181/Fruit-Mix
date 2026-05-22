@@ -27,12 +27,21 @@ public class LiquidWobble : MonoBehaviour
     [SerializeField] private float idleAmplitude = 0.4f;
     [SerializeField] private float idleSpeed = 1.6f;
 
+    [Header("Device tilt sloshing")]
+    [Tooltip("Slosh the liquid when the phone is tilted (reads the accelerometer). Off on desktop.")]
+    [SerializeField] private bool enableTiltSlosh = true;
+    [Tooltip("Degrees of lean per 1g of side tilt. The spring still clamps to Max Tilt.")]
+    [SerializeField] private float tiltLeanFactor = 10f;
+    [Tooltip("How fast tilt changes kick the slosh (sudden tilts splash more than slow ones).")]
+    [SerializeField] private float tiltSloshKick = 40f;
+
     [Header("Optional shader hook")]
     [SerializeField] private SpriteRenderer shaderTarget;
     [SerializeField] private string splashProperty = "_Splash";
 
     private float angle;          // current tilt (deg)
     private float angularVel;     // deg/sec
+    private float lastDeviceTilt; // last frame's side tilt, for slosh kicks
     private float energy;         // 0..1 normalised sloshing energy for the shader
     private Vector3 baseLocalPos;
     private MaterialPropertyBlock mpb;
@@ -68,8 +77,20 @@ public class LiquidWobble : MonoBehaviour
         float dt = Time.deltaTime;
         if (dt <= 0f) return;
 
-        // Spring integration toward angle = 0.
-        angularVel += (-stiffness * angle - damping * angularVel) * dt;
+        // When the phone is tilted, the liquid leans toward the tilt (rest angle) and sudden tilt
+        // changes kick the spring so it sloshes back and forth before settling.
+        float restAngle = 0f;
+        if (enableTiltSlosh)
+        {
+            float tilt = Input.acceleration.x;            // ~ -1..1 g, side tilt
+            restAngle = Mathf.Clamp(-tilt * tiltLeanFactor, -maxTilt, maxTilt);
+            angularVel += (tilt - lastDeviceTilt) * tiltSloshKick;
+            energy = Mathf.Clamp01(energy + Mathf.Abs(tilt - lastDeviceTilt) * 2f);
+            lastDeviceTilt = tilt;
+        }
+
+        // Spring integration toward the (tilt-driven) rest angle.
+        angularVel += (-stiffness * (angle - restAngle) - damping * angularVel) * dt;
         angle += angularVel * dt;
         angle = Mathf.Clamp(angle, -maxTilt, maxTilt);
 

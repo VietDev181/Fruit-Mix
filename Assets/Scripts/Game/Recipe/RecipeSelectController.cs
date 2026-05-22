@@ -1,5 +1,6 @@
 using System;
 using DG.Tweening;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -30,6 +31,8 @@ public class RecipeSelectController : MonoBehaviour
         public Sprite sticker;
         [Tooltip("Title image shown for this drink (e.g. the drink's name art).")]
         public Sprite title;
+        [Tooltip("Gold needed to unlock this drink. 0 = free / always unlocked (e.g. the first drink).")]
+        public int unlockCost = 10;
     }
 
     [Header("Choices")]
@@ -59,6 +62,18 @@ public class RecipeSelectController : MonoBehaviour
     [Header("Title")]
     [Tooltip("Image that shows the current drink's title (set per Choice).")]
     [SerializeField] private Image titleImage;
+
+    [Header("Gold & unlocking")]
+    [Tooltip("Text showing the player's gold total.")]
+    [SerializeField] private TMP_Text goldText;
+    [Tooltip("Object shown over a LOCKED drink (e.g. a lock icon / dim overlay).")]
+    [SerializeField] private GameObject lockOverlay;
+    [Tooltip("Text on the confirm button: shows the unlock cost while locked, then the drink label once unlocked.")]
+    [SerializeField] private TMP_Text unlockCostText;
+    [Tooltip("Text shown once the drink is unlocked.")]
+    [SerializeField] private string drinkLabel = "DRINK!";
+    [Tooltip("Text shown while locked. {0} = unlock cost, e.g. \"Mở khoá ({0})\".")]
+    [SerializeField] private string unlockLabel = "{0}";
 
     [Header("Flow")]
     [Tooltip("Scene loaded after a drink is chosen.")]
@@ -100,8 +115,42 @@ public class RecipeSelectController : MonoBehaviour
             return;
         }
 
+        PlayerProgress.OnGoldChanged += RefreshGold;
+        RefreshGold(PlayerProgress.Gold);
+
         index = Mathf.Clamp(startIndex, 0, choices.Length - 1);
         Show(index, animate: false);
+    }
+
+    private void OnDestroy() => PlayerProgress.OnGoldChanged -= RefreshGold;
+
+    private bool goldShown;
+
+    private void RefreshGold(int gold)
+    {
+        if (goldText == null) return;
+        goldText.text = gold.ToString();
+
+        // Bump the number when it changes (but not on the very first display at load).
+        if (goldShown)
+        {
+            goldText.transform.DOKill();
+            goldText.transform.localScale = Vector3.one;
+            goldText.transform.DOPunchScale(Vector3.one * 0.35f, 0.35f, 8, 0.6f);
+        }
+        goldShown = true;
+    }
+
+    /// <summary>A drink is unlocked if it's free (cost ≤ 0) or has been bought before.</summary>
+    private bool IsUnlocked(Choice c) =>
+        c.unlockCost <= 0 || PlayerProgress.IsUnlocked(c.recipeId);
+
+    private void UpdateLockUI(Choice c)
+    {
+        bool locked = !IsUnlocked(c);
+        if (lockOverlay != null) lockOverlay.SetActive(locked);
+        if (unlockCostText != null)
+            unlockCostText.text = locked ? string.Format(unlockLabel, c.unlockCost) : drinkLabel;
     }
 
     public void Next() => Step(+1);
@@ -141,6 +190,7 @@ public class RecipeSelectController : MonoBehaviour
 
         DropInImage(stickerImage, choice.sticker, animate, ref stickerRestPos, ref stickerRestCaptured);
         DropInImage(titleImage, choice.title, animate, ref titleRestPos, ref titleRestCaptured);
+        UpdateLockUI(choice);
 
         if (!wrap)
         {
@@ -194,10 +244,29 @@ public class RecipeSelectController : MonoBehaviour
     private void Confirm()
     {
         if (transitioning || choices == null || choices.Length == 0) return;
-        transitioning = true;
 
+        var choice = choices[index];
+
+        // Locked drink: try to buy it with gold. Not enough → nudge and bail (stay on the screen).
+        if (!IsUnlocked(choice))
+        {
+            if (!PlayerProgress.TrySpendGold(choice.unlockCost))
+            {
+                audioService?.PlayClickSFX();
+                if (unlockCostText != null)
+                    unlockCostText.transform.DOPunchScale(Vector3.one * 0.25f, 0.3f, 8, 0.6f);
+                return; // can't afford it yet
+            }
+
+            PlayerProgress.Unlock(choice.recipeId);
+            UpdateLockUI(choice); // reveal it's now unlocked
+            audioService?.PlayClickSFX();
+            return; // first tap unlocks; tap again to play it
+        }
+
+        transitioning = true;
         audioService?.PlayClickSFX();
-        RecipeSelection.SelectedId = choices[index].recipeId;
+        RecipeSelection.SelectedId = choice.recipeId;
 
         Time.timeScale = 1f;
         SceneManager.LoadScene(gameSceneName);

@@ -31,6 +31,10 @@ public class AdMobService : MonoBehaviour, IAdService
     [SerializeField] private string iosInterstitialId = "";
     [SerializeField] private string androidAppOpenId = "";
     [SerializeField] private string iosAppOpenId = "";
+    [SerializeField] private string androidBannerId = "";
+    [SerializeField] private string iosBannerId = "";
+    [SerializeField] private string androidRewardedId = "";
+    [SerializeField] private string iosRewardedId = "";
 #pragma warning restore 0414
 
     [Header("Cadence")]
@@ -46,6 +50,13 @@ public class AdMobService : MonoBehaviour, IAdService
     private const string TestInterstitialIOS = "ca-app-pub-3940256099942544/4411468910";
     private const string TestAppOpenAndroid = "ca-app-pub-3940256099942544/9257395921";
     private const string TestAppOpenIOS = "ca-app-pub-3940256099942544/5575463023";
+    private const string TestBannerAndroid = "ca-app-pub-3940256099942544/6300978111";
+    private const string TestBannerIOS = "ca-app-pub-3940256099942544/2934735716";
+    private const string TestRewardedAndroid = "ca-app-pub-3940256099942544/5224354917";
+    private const string TestRewardedIOS = "ca-app-pub-3940256099942544/1712485313";
+
+    /// <summary>Persistent singleton so any scene (Start / Select) can reach the same ad service.</summary>
+    public static AdMobService Instance { get; private set; }
 
     private float lastInterstitialTime = -9999f;
 
@@ -67,12 +78,44 @@ public class AdMobService : MonoBehaviour, IAdService
         useTestAds ? TestAppOpenAndroid : androidAppOpenId;
 #endif
 
+    private string BannerUnitId =>
+#if UNITY_ANDROID
+        useTestAds ? TestBannerAndroid : androidBannerId;
+#elif UNITY_IOS
+        useTestAds ? TestBannerIOS : iosBannerId;
+#else
+        useTestAds ? TestBannerAndroid : androidBannerId;
+#endif
+
+    private string RewardedUnitId =>
+#if UNITY_ANDROID
+        useTestAds ? TestRewardedAndroid : androidRewardedId;
+#elif UNITY_IOS
+        useTestAds ? TestRewardedIOS : iosRewardedId;
+#else
+        useTestAds ? TestRewardedAndroid : androidRewardedId;
+#endif
+
 #if USE_ADMOB
     private InterstitialAd interstitial;
     private AppOpenAd appOpenAd;
+    private BannerView banner;
+    private RewardedAd rewarded;
     private bool isShowingFullScreenAd;
     private bool initialized;
 #endif
+
+    private void Awake()
+    {
+        // Persistent singleton: keep the first instance, destroy any duplicate placed in later scenes.
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
 
     public bool IsInterstitialReady
     {
@@ -98,6 +141,7 @@ public class AdMobService : MonoBehaviour, IAdService
             initialized = true;
             LoadInterstitial();
             LoadAppOpen();
+            LoadRewarded();
         });
 #else
         Debug.Log("[AdMobService] USE_ADMOB not defined — ads are disabled (no-op). " +
@@ -205,11 +249,105 @@ public class AdMobService : MonoBehaviour, IAdService
         if (!paused) ShowAppOpenIfReady();
     }
 
+    // --- Banner -----------------------------------------------------------------------------------
+
+    public void ShowBanner()
+    {
+#if USE_ADMOB
+        if (banner == null)
+        {
+            banner = new BannerView(BannerUnitId, AdSize.Banner, AdPosition.Bottom);
+            banner.LoadAd(new AdRequest());
+        }
+        banner.Show();
+#endif
+    }
+
+    public void HideBanner()
+    {
+#if USE_ADMOB
+        banner?.Hide();
+#endif
+    }
+
+    // --- Rewarded ---------------------------------------------------------------------------------
+
+    public bool IsRewardedReady
+    {
+        get
+        {
+#if USE_ADMOB
+            return initialized && rewarded != null && rewarded.CanShowAd();
+#else
+            return false;
+#endif
+        }
+    }
+
+    public void LoadRewarded()
+    {
+#if USE_ADMOB
+        rewarded?.Destroy();
+        rewarded = null;
+
+        RewardedAd.Load(RewardedUnitId, new AdRequest(), (ad, error) =>
+        {
+            if (error != null || ad == null)
+            {
+                Debug.LogWarning($"[AdMobService] Rewarded failed to load: {error}");
+                return;
+            }
+            rewarded = ad;
+        });
+#endif
+    }
+
+    public void ShowRewarded(Action onRewardEarned, Action onClosed = null)
+    {
+#if USE_ADMOB
+        if (!IsRewardedReady)
+        {
+            // Nothing to show — don't grant a reward, but let the UI recover and pre-load for next time.
+            onClosed?.Invoke();
+            LoadRewarded();
+            return;
+        }
+
+        bool earned = false;
+        rewarded.OnAdFullScreenContentClosed += () =>
+        {
+            isShowingFullScreenAd = false;
+            onClosed?.Invoke();
+            LoadRewarded(); // pre-load the next one
+        };
+        rewarded.OnAdFullScreenContentFailed += _ =>
+        {
+            isShowingFullScreenAd = false;
+            onClosed?.Invoke();
+            LoadRewarded();
+        };
+
+        isShowingFullScreenAd = true;
+        rewarded.Show(_ =>
+        {
+            // Fires only when the user has watched enough to earn the reward.
+            if (earned) return;
+            earned = true;
+            onRewardEarned?.Invoke();
+        });
+#else
+        // No SDK: treat as "no ad available" — do NOT grant the reward.
+        onClosed?.Invoke();
+#endif
+    }
+
     private void OnDestroy()
     {
 #if USE_ADMOB
         interstitial?.Destroy();
         appOpenAd?.Destroy();
+        banner?.Destroy();
+        rewarded?.Destroy();
 #endif
     }
 

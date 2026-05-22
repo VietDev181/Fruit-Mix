@@ -9,7 +9,7 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody2D))]
 public class ToppingBuoyancy : MonoBehaviour
 {
-    [SerializeField] private CupController cup;
+    [SerializeField] private DrinkContainer container;
 
     [Header("Buoyancy")]
     [Tooltip("Upward stiffness toward the rest depth. Higher = floats up faster (use high for ice).")]
@@ -33,22 +33,22 @@ public class ToppingBuoyancy : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         baseDrag = rb.drag;
         phase = Random.value * Mathf.PI * 2f;
-        if (cup == null) cup = GetComponentInParent<CupController>();
+        if (container == null) container = GetComponentInParent<DrinkContainer>();
     }
 
     private void OnEnable()
     {
-        if (cup == null) cup = GetComponentInParent<CupController>();
+        if (container == null) container = GetComponentInParent<DrinkContainer>();
     }
 
     private void FixedUpdate()
     {
-        if (cup == null || cup.Liquid == null) return;
+        if (container == null || container.Liquid == null) return;
 
-        float surfaceY = cup.Liquid.SurfaceWorldPosition.y;
+        float surfaceY = container.Liquid.SurfaceWorldPosition.y;
         float depth = surfaceY - transform.position.y; // >0 when submerged
 
-        if (depth > 0f && !cup.Liquid.IsEmpty)
+        if (depth > 0f && !container.Liquid.IsEmpty)
         {
             // Spring toward rest depth: push up when deeper than restDepth, let it sink when shallower.
             float displacement = depth - restDepth;
@@ -64,6 +64,12 @@ public class ToppingBuoyancy : MonoBehaviour
         {
             rb.drag = baseDrag;
         }
+    }
+
+    /// <summary>Wire the drink container explicitly (prefabs can't reference scene objects).</summary>
+    public void SetContainer(DrinkContainer c)
+    {
+        if (c != null) container = c;
     }
 
     /// <summary>External kick, e.g. from stirring/shaking.</summary>
