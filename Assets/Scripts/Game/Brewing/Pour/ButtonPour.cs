@@ -14,11 +14,21 @@ using UnityEngine.EventSystems;
 public class ButtonPour : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerExitHandler
 {
     [Header("Refs")]
+    [Tooltip("Optional cup hub. Leave EMPTY for the screen-fill flow (no cup); assign the Liquid + " +
+             "Wobble below instead.")]
     [SerializeField] private CupController cup;
+
+    [Header("Direct target (used only when Cup is empty)")]
+    [Tooltip("Liquid to pour into when there is no cup (screen-fill flow).")]
+    [SerializeField] private LiquidController liquid;
+    [Tooltip("Optional sloshing for the direct-liquid flow.")]
+    [SerializeField] private LiquidWobble wobble;
+
+    [Header("FX")]
     [SerializeField] private PourStream stream;
     [SerializeField] private BrewingAudio brewAudio;
-    [Tooltip("WORLD-space empty at the top of the screen above the cup; the stream starts here. " +
-             "If empty, falls back to a point above the cup's pour target.")]
+    [Tooltip("WORLD-space empty at the top of the screen; the stream starts here. If empty, falls " +
+             "back to a point above the cup's pour target, or above the liquid surface.")]
     [SerializeField] private Transform pourOrigin;
 
     [Header("Ingredient")]
@@ -42,6 +52,10 @@ public class ButtonPour : MonoBehaviour, IPointerDownHandler, IPointerUpHandler,
     private bool interactable = true;
     private float pouredThisPress;
 
+    /// <summary>The liquid this button pours into: the cup's liquid, or the directly-assigned one.</summary>
+    private LiquidController Liquid => cup != null ? cup.Liquid : liquid;
+    private LiquidWobble Wobble => cup != null ? cup.Wobble : wobble;
+
     /// <summary>Enable/disable pouring for this button (driven by BrewingManager per phase).</summary>
     public void SetInteractable(bool value)
     {
@@ -49,10 +63,17 @@ public class ButtonPour : MonoBehaviour, IPointerDownHandler, IPointerUpHandler,
         if (!value) EndPour();
     }
 
-    private Vector3 OriginPosition =>
-        pourOrigin != null
-            ? pourOrigin.position
-            : (cup != null ? cup.PourTargetPosition + Vector3.up * fallbackHeight : transform.position);
+    private Vector3 OriginPosition
+    {
+        get
+        {
+            if (pourOrigin != null) return pourOrigin.position;
+            if (cup != null) return cup.PourTargetPosition + Vector3.up * fallbackHeight;
+            var l = Liquid;
+            if (l != null) return l.SurfaceWorldPosition + Vector3.up * fallbackHeight;
+            return transform.position;
+        }
+    }
 
     public void OnPointerDown(PointerEventData _) => BeginPour();
     public void OnPointerUp(PointerEventData _) => EndPour();
@@ -60,7 +81,8 @@ public class ButtonPour : MonoBehaviour, IPointerDownHandler, IPointerUpHandler,
 
     private void BeginPour()
     {
-        if (!interactable || cup == null || cup.Liquid.IsFull) return;
+        var l = Liquid;
+        if (!interactable || l == null || l.IsFull) return;
         pouring = true;
         pouredThisPress = 0f;
         OnPourStarted?.Invoke(ingredientId);
@@ -72,13 +94,16 @@ public class ButtonPour : MonoBehaviour, IPointerDownHandler, IPointerUpHandler,
     {
         if (!pouring) return;
 
-        float add = fillRatePerSecond * Time.deltaTime;
-        cup.Liquid.AddLiquid(add, liquidColor);
-        pouredThisPress += add;
-        cup.Wobble?.AddImpulse(0.04f);
-        stream?.UpdatePositions(OriginPosition, cup.Liquid.SurfaceWorldPosition);
+        var l = Liquid;
+        if (l == null) { EndPour(); return; }
 
-        if (cup.Liquid.IsFull) EndPour();
+        float add = fillRatePerSecond * Time.deltaTime;
+        l.AddLiquid(add, liquidColor);
+        pouredThisPress += add;
+        Wobble?.AddImpulse(0.04f);
+        stream?.UpdatePositions(OriginPosition, l.SurfaceWorldPosition);
+
+        if (l.IsFull) EndPour();
     }
 
     private void EndPour()
@@ -86,8 +111,9 @@ public class ButtonPour : MonoBehaviour, IPointerDownHandler, IPointerUpHandler,
         if (!pouring) return;
 
         // Guarantee a quick tap still adds a satisfying splash.
-        if (pouredThisPress < minPourPerTap && cup != null && !cup.Liquid.IsFull)
-            cup.Liquid.AddLiquid(minPourPerTap - pouredThisPress, liquidColor);
+        var l = Liquid;
+        if (pouredThisPress < minPourPerTap && l != null && !l.IsFull)
+            l.AddLiquid(minPourPerTap - pouredThisPress, liquidColor);
 
         pouring = false;
         stream?.End();

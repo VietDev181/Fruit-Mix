@@ -23,11 +23,15 @@ public class AdMobService : MonoBehaviour, IAdService
              "get your AdMob account banned. Turn off only for release with your own unit IDs filled in.")]
     [SerializeField] private bool useTestAds = true;
 
+    // The platform-specific IDs look "unused" to whichever platform isn't being compiled (the other
+    // branch is stripped by #if), so silence CS0414 for these serialized fields.
+#pragma warning disable 0414
     [Header("Real ad unit IDs (used only when 'Use Test Ads' is OFF)")]
     [SerializeField] private string androidInterstitialId = "";
     [SerializeField] private string iosInterstitialId = "";
     [SerializeField] private string androidAppOpenId = "";
     [SerializeField] private string iosAppOpenId = "";
+#pragma warning restore 0414
 
     [Header("Cadence")]
     [Tooltip("Minimum seconds between two interstitials so we don't spam the player.")]

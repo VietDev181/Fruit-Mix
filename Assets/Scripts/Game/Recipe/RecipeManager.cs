@@ -35,7 +35,10 @@ public class RecipeManager : MonoBehaviour
 
     [Header("Refs")]
     [SerializeField] private BrewTracker tracker;
+    [Tooltip("Optional — leave empty for the cup-less screen-fill flow.")]
     [SerializeField] private CupController cup;
+    [Tooltip("Screen-fill liquid to reset between attempts when there is no cup.")]
+    [SerializeField] private LiquidController liquid;
 
     [Header("UI — order")]
     [Tooltip("Image showing the current recipe/order card.")]
@@ -61,10 +64,14 @@ public class RecipeManager : MonoBehaviour
     [Header("Flow")]
     [Tooltip("Scene to load after all recipes are completed.")]
     [SerializeField] private string startSceneName = "StartScene";
+    [Tooltip("Scene to return to after the single chosen drink is finished (the select scene). " +
+             "Leave empty to fall back to Start Scene.")]
+    [SerializeField] private string selectSceneName = "";
 
     private int index;
     private bool evaluating;
     private float nextShakeTime;
+    private bool singleRecipeMode; // true when launched from the select scene for one specific drink
 
     private void Start()
     {
@@ -74,7 +81,31 @@ public class RecipeManager : MonoBehaviour
             Debug.LogWarning("[RecipeManager] No recipes assigned.");
             return;
         }
-        ShowRecipe(0);
+
+        int startIndex = 0;
+        if (RecipeSelection.HasSelection)
+        {
+            int found = IndexOfRecipe(RecipeSelection.SelectedId);
+            if (found >= 0)
+            {
+                startIndex = found;
+                singleRecipeMode = true; // make only the chosen drink, then return to the select scene
+            }
+            else
+            {
+                Debug.LogWarning($"[RecipeManager] Selected recipe id '{RecipeSelection.SelectedId}' " +
+                                 "not found — falling back to the first recipe.");
+            }
+        }
+
+        ShowRecipe(startIndex);
+    }
+
+    private int IndexOfRecipe(string id)
+    {
+        for (int i = 0; i < recipes.Length; i++)
+            if (recipes[i] != null && recipes[i].id == id) return i;
+        return -1;
     }
 
     private void Update()
@@ -100,6 +131,7 @@ public class RecipeManager : MonoBehaviour
 
         tracker?.ResetRound();
         cup?.ResetCup();
+        liquid?.ResetLiquid(); // screen-fill flow: clear the poured liquid for a fresh attempt
 
         if (resultPanel != null) resultPanel.SetActive(false);
         if (recipeImageUI != null) recipeImageUI.sprite = recipes[i].recipeImage;
@@ -156,6 +188,10 @@ public class RecipeManager : MonoBehaviour
         {
             ShowRecipe(index); // wrong → redo the same recipe
         }
+        else if (singleRecipeMode)
+        {
+            Finish(); // the chosen drink is done → back to the select scene
+        }
         else if (index + 1 < recipes.Length)
         {
             ShowRecipe(index + 1); // correct → next recipe
@@ -169,6 +205,11 @@ public class RecipeManager : MonoBehaviour
     private void Finish()
     {
         Time.timeScale = 1f;
-        SceneManager.LoadScene(startSceneName);
+        RecipeSelection.Clear();
+
+        string scene = (singleRecipeMode && !string.IsNullOrEmpty(selectSceneName))
+            ? selectSceneName
+            : startSceneName;
+        SceneManager.LoadScene(scene);
     }
 }

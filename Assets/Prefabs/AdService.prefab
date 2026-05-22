@@ -44,10 +44,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: beef5441aa54c4fa18dd29dbbbad95e8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  useTestAds: 1
+  useTestAds: 0
   androidInterstitialId: 
   iosInterstitialId: 
   androidAppOpenId: 
   iosAppOpenId: 
   minSecondsBetweenInterstitials: 60
-  showDebugButtons: 1
+  showDebugButtons: 0
