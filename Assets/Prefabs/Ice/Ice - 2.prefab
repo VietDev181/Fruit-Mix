@@ -296,7 +296,7 @@ MonoBehaviour:
   grabScale: 1.15
   returnDuration: 0.3
   draggable: 0
-  id: 
+  id: ice2
 --- !u!114 &8276976296817685219
 MonoBehaviour:
   m_ObjectHideFlags: 0

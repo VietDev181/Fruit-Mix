@@ -135,7 +135,8 @@ public class RecipeManager : MonoBehaviour
 
         if (shake >= shakeSensitivity)
         {
-            shakeProgress += fillRate * Mathf.Min(shake, 3f) * dt;
+            if (IsRecipeReady())
+                shakeProgress += fillRate * Mathf.Min(shake, 3f) * dt;
             JiggleToppings(shake);
         }
         else
@@ -247,6 +248,31 @@ public class RecipeManager : MonoBehaviour
         }
         bool ok = Evaluate(recipes[index]);
         StartCoroutine(ResultRoutine(ok));
+    }
+
+    /// <summary>True when all required ingredients and toppings for the current recipe are present.</summary>
+    private bool IsRecipeReady()
+    {
+        if (tracker == null || index >= recipes.Length) return false;
+        var r = recipes[index];
+
+        if (r.ingredients != null)
+        {
+            var have = new HashSet<string>(tracker.Ingredients);
+            foreach (var b in r.ingredients)
+                if (b != null && !string.IsNullOrEmpty(b.IngredientId) && !have.Contains(b.IngredientId))
+                    return false;
+        }
+
+        if (r.toppings != null && r.toppings.Length > 0)
+        {
+            var haveToppings = tracker.ToppingIds();
+            foreach (var t in r.toppings)
+                if (t != null && !string.IsNullOrEmpty(t.Id) && !haveToppings.Contains(t.Id))
+                    return false;
+        }
+
+        return true;
     }
 
     private bool Evaluate(RecipeDefinition r)

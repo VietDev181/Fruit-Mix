@@ -238,7 +238,7 @@ MonoBehaviour:
   grabScale: 1.15
   returnDuration: 0.3
   draggable: 0
-  id: 
+  id: fruit7
 --- !u!114 &2573060297509631662
 MonoBehaviour:
   m_ObjectHideFlags: 0

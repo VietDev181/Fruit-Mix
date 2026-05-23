@@ -17,8 +17,8 @@ public class LiquidWobble : MonoBehaviour
     [Header("Spring")]
     [SerializeField] private float stiffness = 120f;
     [SerializeField] private float damping = 6f;
-    [Tooltip("Max tilt in degrees so the liquid never leans unrealistically far.")]
-    [SerializeField] private float maxTilt = 7f;
+    [Tooltip("Max tilt in degrees. Set to ~80 to allow a full cup-drinking lean.")]
+    [SerializeField] private float maxTilt = 80f;
     [Tooltip("World units of vertical bob per unit of angular speed.")]
     [SerializeField] private float bobFactor = 0.012f;
 
@@ -30,8 +30,9 @@ public class LiquidWobble : MonoBehaviour
     [Header("Device tilt sloshing")]
     [Tooltip("Slosh the liquid when the phone is tilted (reads the accelerometer). Off on desktop.")]
     [SerializeField] private bool enableTiltSlosh = true;
-    [Tooltip("Degrees of lean per 1g of side tilt. The spring still clamps to Max Tilt.")]
-    [SerializeField] private float tiltLeanFactor = 10f;
+    [Tooltip("Multiplier on the actual device tilt angle (arcsin mapping). 1.0 = physically accurate " +
+             "(water stays level relative to gravity); >1 exaggerates the lean.")]
+    [SerializeField] private float tiltLeanFactor = 1f;
     [Tooltip("How fast tilt changes kick the slosh (sudden tilts splash more than slow ones).")]
     [SerializeField] private float tiltSloshKick = 40f;
 
@@ -83,7 +84,10 @@ public class LiquidWobble : MonoBehaviour
         if (enableTiltSlosh)
         {
             float tilt = Input.acceleration.x;            // ~ -1..1 g, side tilt
-            restAngle = Mathf.Clamp(-tilt * tiltLeanFactor, -maxTilt, maxTilt);
+            // arcsin converts raw gravity component → actual device tilt angle in degrees,
+            // so the liquid lean matches the real phone angle (not just a linear approximation).
+            float tiltAngle = Mathf.Asin(Mathf.Clamp(tilt, -1f, 1f)) * Mathf.Rad2Deg;
+            restAngle = Mathf.Clamp(-tiltAngle * tiltLeanFactor, -maxTilt, maxTilt);
             angularVel += (tilt - lastDeviceTilt) * tiltSloshKick;
             energy = Mathf.Clamp01(energy + Mathf.Abs(tilt - lastDeviceTilt) * 2f);
             lastDeviceTilt = tilt;
