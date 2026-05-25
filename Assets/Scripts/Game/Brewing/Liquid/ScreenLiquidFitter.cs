@@ -19,8 +19,8 @@ public class ScreenLiquidFitter : MonoBehaviour
     [SerializeField] private LiquidController liquid;
     [SerializeField] private Camera cam;
     [Tooltip("Extra world units added to each side so the liquid overflows past the screen edges " +
-             "and never shows a gap at the sides.")]
-    [SerializeField] private float widthPadding = 0.5f;
+             "and body corners stay off-screen when tilted. Increase if gaps appear at high tilt angles.")]
+    [SerializeField] private float widthPadding = 2f;
     [Tooltip("Re-fit every frame so it stays correct if the screen rotates / resizes. Off = fit once.")]
     [SerializeField] private bool refitContinuously = false;
 

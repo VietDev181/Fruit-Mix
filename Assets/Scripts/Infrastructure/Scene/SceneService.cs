@@ -9,6 +9,12 @@ public class SceneService : MonoBehaviour, ISceneService
         SceneManager.LoadScene("StartScene");
     }
 
+    public void LoadSelectScene()
+    {
+        Time.timeScale = 1f;
+        SceneManager.LoadScene("SelectScene");
+    }
+
     public void ReloadCurrentScene()
     {
         Time.timeScale = 1f;

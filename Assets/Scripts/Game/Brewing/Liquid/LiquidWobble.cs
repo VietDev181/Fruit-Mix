@@ -1,49 +1,50 @@
 using UnityEngine;
 
 /// <summary>
-/// Damped-spring sloshing for the liquid. Instead of a real fluid sim we tilt + bob the liquid
-/// root with a critically-ish damped spring; the cup's SpriteMask clips the leaning corners so it
-/// reads as sloshing. Pour / plop / stir events feed impulses via <see cref="AddImpulse"/>.
-///
-/// If a material with the optional LiquidWobble shader is assigned, the same energy drives the
-/// shader's "_Splash" ripple amount for extra surface detail — but the effect works fully without it.
+/// Damped-spring sloshing for the liquid. The body stays upright (no rotation) to avoid gaps on
+/// screen-fill liquid. Only the surface/meniscus sprite tilts to show the water-surface angle.
+/// Pour / plop / stir events feed impulses via <see cref="AddImpulse"/>.
 /// </summary>
 public class LiquidWobble : MonoBehaviour
 {
     [Header("Target")]
-    [Tooltip("Transform tilted/bobbed to fake sloshing (usually the liquid root holding body + surface).")]
+    [Tooltip("The liquid body root — never rotated, so no gaps appear at screen edges.")]
     [SerializeField] private Transform liquidRoot;
+    [Tooltip("The surface/meniscus sprite transform. Only this tilts to show the water-surface angle.")]
+    [SerializeField] private Transform surfaceRoot;
+    [Tooltip("LiquidController whose shader receives the tilt slope each frame.")]
+    [SerializeField] private LiquidController liquidController;
 
     [Header("Spring")]
-    [SerializeField] private float stiffness = 120f;
-    [SerializeField] private float damping = 6f;
-    [Tooltip("Max tilt in degrees. Set to ~80 to allow a full cup-drinking lean.")]
+    [SerializeField] private float stiffness = 800f;
+    [SerializeField] private float damping = 10f;
+    [Tooltip("Max surface tilt in degrees.")]
     [SerializeField] private float maxTilt = 80f;
-    [Tooltip("World units of vertical bob per unit of angular speed.")]
     [SerializeField] private float bobFactor = 0.012f;
 
     [Header("Idle shimmer")]
-    [Tooltip("Tiny constant sine wobble so the surface is never perfectly still.")]
-    [SerializeField] private float idleAmplitude = 0.4f;
+    [SerializeField] private float idleAmplitude = 0.3f;
     [SerializeField] private float idleSpeed = 1.6f;
 
     [Header("Device tilt sloshing")]
-    [Tooltip("Slosh the liquid when the phone is tilted (reads the accelerometer). Off on desktop.")]
     [SerializeField] private bool enableTiltSlosh = true;
-    [Tooltip("Multiplier on the actual device tilt angle (arcsin mapping). 1.0 = physically accurate " +
-             "(water stays level relative to gravity); >1 exaggerates the lean.")]
-    [SerializeField] private float tiltLeanFactor = 1f;
-    [Tooltip("How fast tilt changes kick the slosh (sudden tilts splash more than slow ones).")]
-    [SerializeField] private float tiltSloshKick = 40f;
+    [SerializeField] private float tiltLeanFactor = 1.3f;
+    [SerializeField] private float tiltSloshKick = 20f;
+    [Tooltip("Tick if the liquid leans the wrong way on your device.")]
+    [SerializeField] private bool invertTilt = false;
+
+    [Header("Editor fallback (PC testing)")]
+    [Tooltip("Hold Left/Right arrow to simulate phone tilt in the editor.")]
+    [SerializeField] private float editorTiltStrength = 1f;
 
     [Header("Optional shader hook")]
     [SerializeField] private SpriteRenderer shaderTarget;
     [SerializeField] private string splashProperty = "_Splash";
 
-    private float angle;          // current tilt (deg)
-    private float angularVel;     // deg/sec
-    private float lastDeviceTilt; // last frame's side tilt, for slosh kicks
-    private float energy;         // 0..1 normalised sloshing energy for the shader
+    private float angle;
+    private float angularVel;
+    private float lastDeviceTilt;
+    private float energy;
     private Vector3 baseLocalPos;
     private MaterialPropertyBlock mpb;
     private int splashId;
@@ -59,14 +60,12 @@ public class LiquidWobble : MonoBehaviour
         }
     }
 
-    /// <summary>Kick the spring. <paramref name="strength"/> ~0.2 (gentle) .. 1.5 (hard shake).</summary>
     public void AddImpulse(float strength)
     {
         angularVel += strength * 60f * Mathf.Sign(Random.value - 0.5f);
         energy = Mathf.Clamp01(energy + strength);
     }
 
-    /// <summary>Continuous push, e.g. while a stir swipe is dragging. Sign sets the lean direction.</summary>
     public void AddDirectionalForce(float signedStrength)
     {
         angularVel += signedStrength * 180f * Time.deltaTime * 60f;
@@ -78,34 +77,49 @@ public class LiquidWobble : MonoBehaviour
         float dt = Time.deltaTime;
         if (dt <= 0f) return;
 
-        // When the phone is tilted, the liquid leans toward the tilt (rest angle) and sudden tilt
-        // changes kick the spring so it sloshes back and forth before settling.
         float restAngle = 0f;
         if (enableTiltSlosh)
         {
-            float tilt = Input.acceleration.x;            // ~ -1..1 g, side tilt
-            // arcsin converts raw gravity component → actual device tilt angle in degrees,
-            // so the liquid lean matches the real phone angle (not just a linear approximation).
+            float tilt = Input.acceleration.x;
+#if UNITY_EDITOR
+            if (tilt == 0f)
+            {
+                if (Input.GetKey(KeyCode.LeftArrow))  tilt = -editorTiltStrength;
+                if (Input.GetKey(KeyCode.RightArrow)) tilt =  editorTiltStrength;
+            }
+#endif
             float tiltAngle = Mathf.Asin(Mathf.Clamp(tilt, -1f, 1f)) * Mathf.Rad2Deg;
-            restAngle = Mathf.Clamp(-tiltAngle * tiltLeanFactor, -maxTilt, maxTilt);
+            float sign = invertTilt ? 1f : -1f;
+            restAngle = Mathf.Clamp(sign * tiltAngle * tiltLeanFactor, -maxTilt, maxTilt);
             angularVel += (tilt - lastDeviceTilt) * tiltSloshKick;
             energy = Mathf.Clamp01(energy + Mathf.Abs(tilt - lastDeviceTilt) * 2f);
             lastDeviceTilt = tilt;
         }
 
-        // Spring integration toward the (tilt-driven) rest angle.
         angularVel += (-stiffness * (angle - restAngle) - damping * angularVel) * dt;
         angle += angularVel * dt;
         angle = Mathf.Clamp(angle, -maxTilt, maxTilt);
 
-        // Subtle idle shimmer layered on top of the spring.
         float idle = Mathf.Sin(Time.time * idleSpeed) * idleAmplitude;
         float displayAngle = angle + idle;
 
-        liquidRoot.localRotation = Quaternion.Euler(0f, 0f, displayAngle);
+        // Body stays flat — shader handles the tilted fill line, no gaps.
+        liquidRoot.localRotation = Quaternion.identity;
         liquidRoot.localPosition = baseLocalPos + new Vector3(0f, -Mathf.Abs(angularVel) * bobFactor, 0f);
 
-        // Decay shader energy.
+        // Surface tilts to match the shader fill line visually.
+        if (surfaceRoot != null)
+            surfaceRoot.localRotation = Quaternion.Euler(0f, 0f, displayAngle);
+
+        // Send tilt slope to the body shader so the fill line tilts per-pixel.
+        // slope = tan(angle) * bodyWidth / cavityHeight  (converts world slope to UV space).
+        if (liquidController != null)
+        {
+            float rad = displayAngle * Mathf.Deg2Rad;
+            float slope = Mathf.Tan(rad) * liquidController.BodyWidth / Mathf.Max(liquidController.CavityHeight, 0.001f);
+            liquidController.SetTiltSlope(slope);
+        }
+
         energy = Mathf.MoveTowards(energy, 0f, dt * 0.8f);
         if (shaderTarget != null)
         {
@@ -125,5 +139,7 @@ public class LiquidWobble : MonoBehaviour
             liquidRoot.localRotation = Quaternion.identity;
             liquidRoot.localPosition = baseLocalPos;
         }
+        if (surfaceRoot != null)
+            surfaceRoot.localRotation = Quaternion.identity;
     }
 }

@@ -50,7 +50,7 @@ public class UIGame : MonoBehaviour
     private void OnHomeGame()
     {
         _audio.PlayClickSFX();
-        _sceneService.LoadStartScene();
+        _sceneService.LoadSelectScene();
     }
 
     private void OnPauseGame()

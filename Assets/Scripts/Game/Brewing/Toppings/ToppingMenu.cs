@@ -62,6 +62,7 @@ public class ToppingMenu : MonoBehaviour
     [SerializeField] private DrinkContainer container;
     [SerializeField] private Camera cam;
     [SerializeField] private BrewingAudio brewAudio;
+    [SerializeField] private BrewingManager brewingManager;
 
     [Header("Drop")]
     [Tooltip("Fixed point toppings drop from. Leave null to use the screen's top-centre.")]
@@ -205,6 +206,7 @@ public class ToppingMenu : MonoBehaviour
         topping.FillCost = item.fillCost;
         topping.SetInteractable(true); // id comes from the prefab itself (DraggableTopping.Id)
         topping.DropAt(spawnPos);
+        brewingManager?.NotifyToppingAdded();
 
         // Little tactile pop on the tapped button.
         source.transform.DOKill();

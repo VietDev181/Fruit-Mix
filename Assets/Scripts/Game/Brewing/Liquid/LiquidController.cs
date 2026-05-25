@@ -48,12 +48,28 @@ public class LiquidController : MonoBehaviour
     /// <summary>Raised whenever the fill changes (immediate target value, not the tweened value).</summary>
     public event Action<float> OnFillChanged;
 
-    private float totalVolume; // accumulated volume used for colour weighting
+    private float totalVolume;
     private Tween fillTween;
     private Tween colorTween;
 
+    // Shader-driven fill: body stays full-height, shader clips based on _Fill + _TiltSlope.
+    private MaterialPropertyBlock bodyMpb;
+    private float shaderFill;   // current tweened fill value sent to the shader
+    private float tiltSlope;    // set by LiquidWobble each frame
+
+    private static readonly int PropFill      = Shader.PropertyToID("_Fill");
+    private static readonly int PropTiltSlope = Shader.PropertyToID("_TiltSlope");
+
+    /// <summary>Called by LiquidWobble every frame to drive the shader tilt effect.</summary>
+    public void SetTiltSlope(float slope)
+    {
+        tiltSlope = slope;
+        PushBodyMpb();
+    }
+
     private void Awake()
     {
+        bodyMpb = new MaterialPropertyBlock();
         CurrentColor = emptyColor;
         ApplyFillInstant(0f);
         if (body != null) body.color = emptyColor;
@@ -74,6 +90,8 @@ public class LiquidController : MonoBehaviour
 
     /// <summary>Local Y of the cavity bottom (where the liquid starts rising from).</summary>
     public float BottomLocalY => bottomLocalY;
+    /// <summary>Total height of the fillable cavity in local units.</summary>
+    public float CavityHeight => cavityHeight;
     /// <summary>Horizontal span of the liquid body, in local units.</summary>
     public float BodyWidth => bodyWidth;
     /// <summary>Height of the filled liquid column for the current fill, in local units.</summary>
@@ -150,13 +168,16 @@ public class LiquidController : MonoBehaviour
     private void ApplyFillInstant(float f)
     {
         tweenFillCache = f;
+        shaderFill = f;
         float h = f * cavityHeight;
 
         if (body != null)
         {
-            body.transform.localScale = new Vector3(bodyWidth, Mathf.Max(h, 0.0001f), 1f);
+            // Body is always full-height; the shader clips it at the tilted fill line.
+            body.transform.localScale = new Vector3(bodyWidth, Mathf.Max(cavityHeight, 0.0001f), 1f);
             body.transform.localPosition = new Vector3(0f, bottomLocalY, 0f);
             body.enabled = f > 0.0001f;
+            PushBodyMpb();
         }
         if (surface != null)
         {
@@ -164,6 +185,15 @@ public class LiquidController : MonoBehaviour
             surface.transform.localPosition = new Vector3(0f, bottomLocalY + h, 0f);
             surface.enabled = f > 0.0001f;
         }
+    }
+
+    private void PushBodyMpb()
+    {
+        if (body == null) return;
+        body.GetPropertyBlock(bodyMpb);
+        bodyMpb.SetFloat(PropFill, shaderFill);
+        bodyMpb.SetFloat(PropTiltSlope, tiltSlope);
+        body.SetPropertyBlock(bodyMpb);
     }
 
     private void OnDestroy()

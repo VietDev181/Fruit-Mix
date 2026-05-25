@@ -151,6 +151,8 @@ public class RecipeSelectController : MonoBehaviour
         if (lockOverlay != null) lockOverlay.SetActive(locked);
         if (unlockCostText != null)
             unlockCostText.text = locked ? string.Format(unlockLabel, c.unlockCost) : drinkLabel;
+        if (drinkSprite != null)
+            drinkSprite.color = locked ? new Color(0.4f, 0.4f, 0.4f, 1f) : Color.white;
     }
 
     public void Next() => Step(+1);

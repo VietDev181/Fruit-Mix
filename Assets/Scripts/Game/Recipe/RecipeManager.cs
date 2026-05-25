@@ -57,6 +57,9 @@ public class RecipeManager : MonoBehaviour
     [SerializeField] private GameObject wrongBadge;
     [Tooltip("Seconds the result screen stays up before advancing / retrying.")]
     [SerializeField] private float resultDuration = 2f;
+    [Tooltip("Panel shown after the correct badge — tells the player to tilt and enjoy the drink. " +
+             "Hide it by default; it is shown automatically when the enjoy phase starts.")]
+    [SerializeField] private GameObject enjoyHintPanel;
 
     [Header("Shake to serve")]
     [Tooltip("Progress bar that fills as the player shakes; serving happens when it reaches the top.")]
@@ -316,9 +319,12 @@ public class RecipeManager : MonoBehaviour
             yield break;
         }
 
-        // Correct → let the player enjoy it: tilt the phone to drain the drink empty.
+        // Correct → show the enjoy hint, then let the player tilt to drain the drink.
         yield return new WaitForSeconds(resultDuration);
+        if (correctBadge != null) correctBadge.SetActive(false);
+        if (enjoyHintPanel != null) enjoyHintPanel.SetActive(true);
         yield return StartCoroutine(EnjoyRoutine());
+        if (enjoyHintPanel != null) enjoyHintPanel.SetActive(false);
 
         // Reward the finished drink with gold (used to unlock more drinks in the select scene).
         PlayerProgress.AddGold(goldPerDrink);
