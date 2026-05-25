@@ -86,6 +86,15 @@ public class BrewingManager : MonoBehaviour
 
     private void HandleFillChanged(float fill) => RefreshShakeHint();
 
+    private bool recipeReady = false;
+
+    /// <summary>Called by RecipeManager whenever ingredient state changes.</summary>
+    public void SetRecipeReady(bool value)
+    {
+        recipeReady = value;
+        RefreshShakeHint();
+    }
+
     /// <summary>Call this after a topping is dropped so the hint re-evaluates.</summary>
     public void NotifyToppingAdded() => RefreshShakeHint();
 
@@ -94,8 +103,7 @@ public class BrewingManager : MonoBehaviour
         if (shakeHintUI == null) return;
         bool canShow = Phase != BrewingPhase.Drink && Phase != BrewingPhase.Done;
         bool hasLiquid = container?.Liquid != null && container.Liquid.Fill >= minFillToShowHint;
-        bool hasTopping = container?.ToppingContainer != null && container.ToppingContainer.childCount > 0;
-        shakeHintUI.SetActive(canShow && hasLiquid && hasTopping);
+        shakeHintUI.SetActive(canShow && hasLiquid && recipeReady);
     }
 
     private void SetPhase(BrewingPhase phase)

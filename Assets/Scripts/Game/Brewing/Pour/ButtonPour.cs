@@ -40,6 +40,8 @@ public class ButtonPour : MonoBehaviour, IPointerDownHandler, IPointerUpHandler,
 
     /// <summary>The ingredient's type id, exposed for recipe matching.</summary>
     public string IngredientId => ingredientId;
+    /// <summary>The liquid color for this ingredient — used by the recipe slot UI.</summary>
+    public Color LiquidColor => liquidColor;
     /// <summary>Raised the moment this button starts pouring into the cup (passes its id).</summary>
     public event Action<string> OnPourStarted;
 

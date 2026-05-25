@@ -84,6 +84,11 @@ public class RecipeSelectController : MonoBehaviour
     [Header("Audio (optional)")]
     [SerializeField] private AudioService audioService;
 
+    [Header("VFX")]
+    [Tooltip("VFX GameObject/ParticleSystem played when a drink is successfully unlocked. " +
+             "It will be activated then deactivated automatically after the effect finishes.")]
+    [SerializeField] private ParticleSystem unlockVFX;
+
     private int index;
     private bool transitioning;
     private Vector2 stickerRestPos;
@@ -93,6 +98,8 @@ public class RecipeSelectController : MonoBehaviour
 
     private void Start()
     {
+        if (unlockVFX != null) unlockVFX.gameObject.SetActive(false);
+
         if (stickerImage != null)
         {
             stickerRestPos = stickerImage.rectTransform.anchoredPosition;
@@ -145,14 +152,91 @@ public class RecipeSelectController : MonoBehaviour
     private bool IsUnlocked(Choice c) =>
         c.unlockCost <= 0 || PlayerProgress.IsUnlocked(c.recipeId);
 
+    [Header("Idle animation")]
+    [SerializeField] private float idleFloatAmount = 20f;
+    [SerializeField] private float idleFloatDuration = 2f;
+    [Tooltip("Float distance specifically for the drink sprite (world units). Smaller = subtler.")]
+    [SerializeField] private float drinkFloatAmount = 8f;
+
     private void UpdateLockUI(Choice c)
     {
         bool locked = !IsUnlocked(c);
         if (lockOverlay != null) lockOverlay.SetActive(locked);
         if (unlockCostText != null)
             unlockCostText.text = locked ? string.Format(unlockLabel, c.unlockCost) : drinkLabel;
+
+        var gray = new Color(0.4f, 0.4f, 0.4f, 1f);
+
         if (drinkSprite != null)
-            drinkSprite.color = locked ? new Color(0.4f, 0.4f, 0.4f, 1f) : Color.white;
+            drinkSprite.color = locked ? gray : Color.white;
+        if (stickerImage != null)
+            stickerImage.color = locked ? gray : Color.white;
+        if (titleImage != null)
+            titleImage.color = locked ? gray : Color.white;
+
+        if (locked) StopIdleAnimations();
+    }
+
+    private void StartIdleAnimations()
+    {
+        // Drink sprite: breathe (scale pulse) + slow float
+        if (drinkSprite != null)
+        {
+            var t = drinkSprite.transform;
+            t.DOKill();
+            Vector3 base3 = t.localPosition;
+            t.DOLocalMoveY(base3.y + drinkFloatAmount, idleFloatDuration)
+             .SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo);
+            t.DOScale(Vector3.one * 1.05f, idleFloatDuration * 0.8f)
+             .SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo);
+        }
+
+        // Sticker: pendulum swing + counter-float (opposite phase)
+        if (stickerImage != null && stickerImage.enabled)
+        {
+            var rt = stickerImage.rectTransform;
+            rt.DOKill();
+            rt.DOAnchorPosY(stickerRestPos.y - idleFloatAmount * 0.6f, idleFloatDuration * 1.1f)
+              .SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo);
+            rt.DOLocalRotate(new Vector3(0f, 0f, 8f), idleFloatDuration * 0.9f)
+              .SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo);
+        }
+
+        // Title: horizontal sway + subtle scale pulse (different speed for variety)
+        if (titleImage != null && titleImage.enabled)
+        {
+            var rt = titleImage.rectTransform;
+            rt.DOKill();
+            rt.DOAnchorPosX(titleRestPos.x + idleFloatAmount * 0.5f, idleFloatDuration * 1.3f)
+              .SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo);
+            rt.DOScale(Vector3.one * 1.04f, idleFloatDuration * 1.5f)
+              .SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo);
+        }
+    }
+
+    private void StopIdleAnimations()
+    {
+        if (drinkSprite != null)
+        {
+            drinkSprite.transform.DOKill();
+            drinkSprite.transform.localScale = Vector3.one;
+            drinkSprite.transform.localRotation = Quaternion.identity;
+        }
+        if (stickerImage != null)
+        {
+            stickerImage.rectTransform.DOKill();
+            stickerImage.rectTransform.localRotation = Quaternion.identity;
+            stickerImage.rectTransform.localScale = Vector3.one;
+            if (stickerRestCaptured)
+                stickerImage.rectTransform.anchoredPosition = stickerRestPos;
+        }
+        if (titleImage != null)
+        {
+            titleImage.rectTransform.DOKill();
+            titleImage.rectTransform.localScale = Vector3.one;
+            if (titleRestCaptured)
+                titleImage.rectTransform.anchoredPosition = titleRestPos;
+        }
     }
 
     public void Next() => Step(+1);
@@ -178,21 +262,29 @@ public class RecipeSelectController : MonoBehaviour
     {
         var choice = choices[i];
 
+        // Stop any running idle before applying new state.
+        StopIdleAnimations();
+
         if (drinkSprite != null)
         {
             drinkSprite.sprite = choice.art;
             drinkSprite.enabled = choice.art != null;
+            drinkSprite.transform.localRotation = Quaternion.identity;
             if (animate)
             {
                 drinkSprite.transform.DOKill();
                 drinkSprite.transform.localScale = Vector3.one * 0.9f;
-                drinkSprite.transform.DOScale(1f, 0.25f).SetEase(Ease.OutBack);
+                drinkSprite.transform.DOScale(1f, 0.25f).SetEase(Ease.OutBack)
+                    .OnComplete(() => { if (IsUnlocked(choice)) StartIdleAnimations(); });
             }
         }
 
         DropInImage(stickerImage, choice.sticker, animate, ref stickerRestPos, ref stickerRestCaptured);
         DropInImage(titleImage, choice.title, animate, ref titleRestPos, ref titleRestCaptured);
         UpdateLockUI(choice);
+
+        // If not animating, start idle immediately (animate=true waits for tween OnComplete).
+        if (!animate && IsUnlocked(choice)) StartIdleAnimations();
 
         if (!wrap)
         {
@@ -263,6 +355,13 @@ public class RecipeSelectController : MonoBehaviour
             PlayerProgress.Unlock(choice.recipeId);
             UpdateLockUI(choice); // reveal it's now unlocked
             audioService?.PlayClickSFX();
+            if (unlockVFX != null)
+            {
+                unlockVFX.gameObject.SetActive(true);
+                unlockVFX.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                unlockVFX.Play();
+                StartCoroutine(HideVFXWhenDone(unlockVFX));
+            }
             return; // first tap unlocks; tap again to play it
         }
 
@@ -272,5 +371,11 @@ public class RecipeSelectController : MonoBehaviour
 
         Time.timeScale = 1f;
         SceneManager.LoadScene(gameSceneName);
+    }
+
+    private System.Collections.IEnumerator HideVFXWhenDone(ParticleSystem vfx)
+    {
+        yield return new WaitUntil(() => vfx == null || !vfx.IsAlive(true));
+        if (vfx != null) vfx.gameObject.SetActive(false);
     }
 }

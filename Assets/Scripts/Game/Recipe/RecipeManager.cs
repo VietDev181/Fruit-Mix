@@ -38,6 +38,8 @@ public class RecipeManager : MonoBehaviour
     [SerializeField] private DrinkContainer container;
     [Tooltip("Tilt-to-drink controller — enabled after a CORRECT result so the player drinks the cup empty.")]
     [SerializeField] private DrinkController drink;
+    [Tooltip("BrewingManager — called to hide the shake hint when enjoy phase starts.")]
+    [SerializeField] private BrewingManager brewingManager;
     [Tooltip("Extra pause after the drink is emptied before advancing to the next recipe.")]
     [SerializeField] private float afterDrinkPause = 0.4f;
     [Tooltip("Gold awarded each time a drink is finished (correct + drunk empty).")]
@@ -48,18 +50,34 @@ public class RecipeManager : MonoBehaviour
     [Header("UI — order")]
     [Tooltip("Image showing the current recipe/order card.")]
     [SerializeField] private Image recipeImageUI;
+    [Tooltip("Optional ingredient checklist UI — shows what's needed for the current recipe.")]
+    [SerializeField] private RecipeIngredientUI ingredientUI;
 
     [Header("UI — result")]
     [SerializeField] private GameObject resultPanel;
     [Tooltip("Image of the finished cup shown on the result screen.")]
     [SerializeField] private Image resultImageUI;
     [SerializeField] private GameObject correctBadge;
+    [Tooltip("Button the player taps on the correct badge to proceed to the enjoy phase.")]
+    [SerializeField] private UnityEngine.UI.Button correctContinueButton;
     [SerializeField] private GameObject wrongBadge;
-    [Tooltip("Seconds the result screen stays up before advancing / retrying.")]
+    [Tooltip("Seconds the wrong result screen stays up before retrying.")]
     [SerializeField] private float resultDuration = 2f;
     [Tooltip("Panel shown after the correct badge — tells the player to tilt and enjoy the drink. " +
              "Hide it by default; it is shown automatically when the enjoy phase starts.")]
     [SerializeField] private GameObject enjoyHintPanel;
+    [Tooltip("All UI GameObjects to hide when the enjoy (drink) phase starts.")]
+    [SerializeField] private GameObject[] uiToHideOnDrink;
+
+    [Header("Result idle animation")]
+    [Tooltip("How far (pixels) the drink image and badges float up/down.")]
+    [SerializeField] private float idleFloatAmount = 18f;
+    [Tooltip("Duration (seconds) of one float cycle (up → down).")]
+    [SerializeField] private float idleFloatDuration = 1.8f;
+    [Tooltip("Scale the drink image breathes to while idle.")]
+    [SerializeField] private float idleScalePeak = 1.06f;
+    [Tooltip("Rotation swing (degrees) of the correct badge while idle.")]
+    [SerializeField] private float badgeSwingDegrees = 8f;
 
     [Header("Shake to serve")]
     [Tooltip("Progress bar that fills as the player shakes; serving happens when it reaches the top.")]
@@ -93,6 +111,11 @@ public class RecipeManager : MonoBehaviour
     private Vector3 lastAcceleration;
     private Tween barPulse;            // heartbeat pulse when the bar is near full
     private bool singleRecipeMode; // true when launched from the select scene for one specific drink
+    private ButtonPour[] allPourButtons;
+
+    // idle animation tweens for the result panel
+    private Tween idleImageFloat, idleImageScale;
+    private Tween idleBadgeFloat, idleBadgeSwing;
 
     private void Start()
     {
@@ -101,6 +124,14 @@ public class RecipeManager : MonoBehaviour
         {
             Debug.LogWarning("[RecipeManager] No recipes assigned.");
             return;
+        }
+
+        // Subscribe all pour buttons so we can forward pour events to the ingredient UI.
+        if (ingredientUI != null)
+        {
+            allPourButtons = FindObjectsOfType<ButtonPour>(true);
+            foreach (var bp in allPourButtons)
+                bp.OnPourStarted += ingredientUI.NotifyIngredientAdded;
         }
 
         int startIndex = 0;
@@ -132,6 +163,8 @@ public class RecipeManager : MonoBehaviour
     private void Update()
     {
         if (evaluating || recipes == null || recipes.Length == 0) return;
+
+        brewingManager?.SetRecipeReady(IsRecipeReady());
 
         float shake = CurrentShake();
         float dt = Time.unscaledDeltaTime;
@@ -189,6 +222,60 @@ public class RecipeManager : MonoBehaviour
             t.DOShakeRotation(0.5f, new Vector3(0f, 0f, 18f), 10, 90f).SetUpdate(true);
     }
 
+    private void StartResultIdleAnimations(bool ok)
+    {
+        StopResultIdleAnimations();
+
+        // Drink image: breathe + float
+        if (resultImageUI != null)
+        {
+            var rt = resultImageUI.rectTransform;
+            Vector2 anchor = rt.anchoredPosition;
+            idleImageFloat = rt.DOAnchorPosY(anchor.y + idleFloatAmount, idleFloatDuration)
+                .SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo).SetUpdate(true);
+            idleImageScale = rt.DOScale(Vector3.one * idleScalePeak, idleFloatDuration * 0.9f)
+                .SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo).SetUpdate(true);
+        }
+
+        // Badge idle — starts after the pop-in finishes (0.45s delay)
+        GameObject badge = ok ? correctBadge : wrongBadge;
+        if (badge != null)
+        {
+            var bt = badge.transform;
+            Vector3 startPos = bt.localPosition;
+            float delay = 0.45f;
+            if (ok)
+            {
+                // Correct: float up/down + gentle pendulum swing
+                idleBadgeFloat = bt.DOLocalMoveY(startPos.y + idleFloatAmount * 0.7f, idleFloatDuration * 1.1f)
+                    .SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo).SetDelay(delay).SetUpdate(true);
+                idleBadgeSwing = bt.DOLocalRotate(new Vector3(0f, 0f, badgeSwingDegrees), idleFloatDuration * 0.85f)
+                    .SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo).SetDelay(delay).SetUpdate(true);
+            }
+            else
+            {
+                // Wrong: slow sad wobble side to side
+                idleBadgeSwing = bt.DOLocalRotate(new Vector3(0f, 0f, badgeSwingDegrees * 0.5f), idleFloatDuration * 1.3f)
+                    .SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo).SetDelay(delay).SetUpdate(true);
+            }
+        }
+    }
+
+    private void StopResultIdleAnimations()
+    {
+        idleImageFloat?.Kill(); idleImageFloat = null;
+        idleImageScale?.Kill(); idleImageScale = null;
+        idleBadgeFloat?.Kill(); idleBadgeFloat = null;
+        idleBadgeSwing?.Kill(); idleBadgeSwing = null;
+
+        if (resultImageUI != null)
+        {
+            resultImageUI.rectTransform.localScale = Vector3.one;
+        }
+        if (correctBadge != null) { correctBadge.transform.localRotation = Quaternion.identity; }
+        if (wrongBadge != null)   { wrongBadge.transform.localRotation   = Quaternion.identity; }
+    }
+
     /// <summary>Shake intensity this frame: how much the device acceleration changed (or the key).</summary>
     private float CurrentShake()
     {
@@ -231,9 +318,23 @@ public class RecipeManager : MonoBehaviour
 
         tracker?.ResetRound();
         container?.ResetContainer(); // clear liquid + toppings for a fresh attempt
+        brewingManager?.SetRecipeReady(false);
+        brewingManager?.BeginMixing(); // reset brewing phase + hide any leftover hints
 
         if (resultPanel != null) resultPanel.SetActive(false);
-        if (recipeImageUI != null) recipeImageUI.sprite = recipes[i].recipeImage;
+        if (recipeImageUI != null) { recipeImageUI.gameObject.SetActive(true); recipeImageUI.sprite = recipes[i].recipeImage; }
+        if (ingredientUI != null) ingredientUI.gameObject.SetActive(true);
+        if (uiToHideOnDrink != null)
+            foreach (var ui in uiToHideOnDrink)
+                if (ui != null) ui.SetActive(true);
+        ingredientUI?.SetRecipe(recipes[i]);
+    }
+
+    private void OnDestroy()
+    {
+        if (ingredientUI != null && allPourButtons != null)
+            foreach (var bp in allPourButtons)
+                if (bp != null) bp.OnPourStarted -= ingredientUI.NotifyIngredientAdded;
     }
 
     /// <summary>Serve the current drink for scoring. Hooked to shake; can also be a UI button.</summary>
@@ -241,6 +342,7 @@ public class RecipeManager : MonoBehaviour
     {
         if (evaluating) return;
         evaluating = true;
+        brewingManager?.SetRecipeReady(false);
         shakeProgress = 0f;
         if (barPulse != null) { barPulse.Kill(); barPulse = null; }
         if (shakeProgressBar != null)
@@ -311,17 +413,35 @@ public class RecipeManager : MonoBehaviour
         if (correctBadge != null) correctBadge.SetActive(ok);
         if (wrongBadge != null) wrongBadge.SetActive(!ok);
         PopBadge(ok ? correctBadge : wrongBadge, ok);
+        StartResultIdleAnimations(ok);
 
         if (!ok)
         {
             yield return new WaitForSeconds(resultDuration);
+            StopResultIdleAnimations();
             ShowRecipe(index); // wrong → redo the same recipe
             yield break;
         }
 
-        // Correct → show the enjoy hint, then let the player tilt to drain the drink.
-        yield return new WaitForSeconds(resultDuration);
-        if (correctBadge != null) correctBadge.SetActive(false);
+        // Correct → wait for player to tap the continue button on the badge.
+        bool tapped = false;
+        void OnTap() => tapped = true;
+        if (correctContinueButton != null) correctContinueButton.onClick.AddListener(OnTap);
+        yield return new WaitUntil(() => tapped);
+        if (correctContinueButton != null) correctContinueButton.onClick.RemoveListener(OnTap);
+
+        StopResultIdleAnimations();
+
+        // Hide result panel and all game UI, show only the enjoy hint.
+        if (resultPanel != null) resultPanel.SetActive(false);
+        if (recipeImageUI != null) recipeImageUI.gameObject.SetActive(false);
+        if (ingredientUI != null) ingredientUI.gameObject.SetActive(false);
+        if (shakeProgressBar != null) shakeProgressBar.gameObject.SetActive(false);
+        if (uiToHideOnDrink != null)
+            foreach (var ui in uiToHideOnDrink)
+                if (ui != null) ui.SetActive(false);
+
+        brewingManager?.BeginDrinking(); // hides shake hint + disables pour/topping interactions
         if (enjoyHintPanel != null) enjoyHintPanel.SetActive(true);
         yield return StartCoroutine(EnjoyRoutine());
         if (enjoyHintPanel != null) enjoyHintPanel.SetActive(false);

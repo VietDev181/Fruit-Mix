@@ -44,9 +44,10 @@ public class DraggableTopping : MonoBehaviour
     [Tooltip("Topping type id (e.g. \"pearl\", \"ice\"). Lives on the prefab so dropped instances and " +
              "recipe references share it — used by recipe matching.")]
     [SerializeField] private string id;
-
     /// <summary>Topping type id. Serialized on the prefab; settable at runtime if needed.</summary>
     public string Id { get => id; set => id = value; }
+    /// <summary>Reads the sprite directly from the SpriteRenderer on this prefab.</summary>
+    public Sprite Icon => GetComponent<SpriteRenderer>()?.sprite;
 
     private Rigidbody2D rb;
     private Collider2D col;
