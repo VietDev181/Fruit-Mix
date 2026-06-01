@@ -1,4 +1,5 @@
 using System.Collections;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -11,6 +12,30 @@ public class UIStart : MonoBehaviour
     [SerializeField] private RectTransform titleText;
     [SerializeField] private Button playButton;
 
+    [Header("Menu Buttons")]
+    [SerializeField] private Button settingButton;
+    [SerializeField] private Button dailyRewardButton;
+    [SerializeField] private Button adRewardGoldButton;
+
+    [Header("Feature Panels")]
+    [SerializeField] private UISetting settingPanel;
+    [SerializeField] private UIDailyReward dailyRewardPanel;
+
+    [Header("Store — Rewarded Ad")]
+    [Tooltip("Vàng nhận được sau khi xem quảng cáo xong.")]
+    [SerializeField] private int storeAdRewardGold = 50;
+    [Tooltip("Hiệu ứng xu bay khi nhận thưởng (tuỳ chọn).")]
+    [SerializeField] private CoinFlyEffect storeAdCoinFly;
+
+    [Header("Audio (Start Scene)")]
+    [SerializeField] private AudioService audioService;
+
+    [Header("HUD")]
+    [SerializeField] private TextMeshProUGUI goldText;
+
+    [Header("Notification Badges")]
+    [Tooltip("Dấu '!' đỏ trên nút Daily Reward khi có thể nhận")]
+    [SerializeField] private GameObject dailyRewardBadge;
     [Header("Animation Settings")]
     [SerializeField] private float introDuration = 0.8f;
     [SerializeField] private float idleScale = 1.05f;
@@ -49,16 +74,31 @@ public class UIStart : MonoBehaviour
     private CanvasGroup imageGroup;
     private CanvasGroup textGroup;
 
+    private Vector3 titleImageBaseScale;
+    private Vector3 titleTextBaseScale;
+
     private RectTransform canvasRect;
     private Vector2 parallaxTarget;
     private Vector2 parallaxCurrent;
 
     private void Awake()
     {
+        titleImageBaseScale = titleImage.localScale;
+        titleTextBaseScale = titleText.localScale;
         SetupCanvasGroups();
+
         playButton.onClick.AddListener(OnPlayClicked);
+
+        if (settingButton != null) settingButton.onClick.AddListener(OpenSetting);
+        if (dailyRewardButton != null) dailyRewardButton.onClick.AddListener(OpenDailyReward);
+        if (adRewardGoldButton != null) adRewardGoldButton.onClick.AddListener(WatchStoreAd);
+
         canvasRect = GetComponentInParent<Canvas>().GetComponent<RectTransform>();
         Input.gyro.enabled = true;
+
+        // Initialize setting panel with audio if provided
+        if (settingPanel != null && audioService != null)
+            settingPanel.Initialize(audioService);
     }
 
     private void Start()
@@ -66,11 +106,77 @@ public class UIStart : MonoBehaviour
         PlayIntroAnimation();
         if (fruitSprites != null && fruitSprites.Length > 0 && fruitContainer != null)
             StartCoroutine(SpawnFruitsLoop());
+
+        RefreshGold();
+        RefreshBadges();
+        PlayerProgress.OnGoldChanged += OnGoldChanged;
+    }
+
+    private void OnDestroy()
+    {
+        PlayerProgress.OnGoldChanged -= OnGoldChanged;
     }
 
     private void Update()
     {
         UpdateParallax();
+    }
+
+    // =======================
+    // Panel Openers
+    // =======================
+
+    private void OpenSetting()
+    {
+        if (settingPanel != null) settingPanel.Open();
+    }
+
+    private void OpenDailyReward()
+    {
+        if (dailyRewardPanel != null) dailyRewardPanel.Open();
+    }
+
+    private void WatchStoreAd()
+    {
+        var ads = AdMobService.Instance;
+        if (ads == null || !ads.IsRewardedReady) return;
+
+        if (adRewardGoldButton != null) adRewardGoldButton.interactable = false;
+
+        ads.ShowRewarded(
+            onRewardEarned: () =>
+            {
+                PlayerProgress.AddGold(storeAdRewardGold);
+                if (storeAdCoinFly != null) storeAdCoinFly.Play();
+            },
+            onClosed: () =>
+            {
+                if (adRewardGoldButton != null) adRewardGoldButton.interactable = true;
+            });
+    }
+
+    // =======================
+    // HUD Updates
+    // =======================
+
+    private void OnGoldChanged(int newGold)
+    {
+        RefreshGold();
+    }
+
+    private void RefreshGold()
+    {
+        if (goldText != null)
+            goldText.text = PlayerProgress.Gold.ToString();
+    }
+
+    private void RefreshBadges()
+    {
+        if (dailyRewardBadge != null)
+            dailyRewardBadge.SetActive(DailyRewardSystem.CanClaim);
+
+
+
     }
 
     // =======================
@@ -98,8 +204,8 @@ public class UIStart : MonoBehaviour
 
     private void PlayIntroAnimation()
     {
-        titleImage.localScale = Vector3.one * 0.8f;
-        titleText.localScale = Vector3.one * 0.8f;
+        titleImage.localScale = titleImageBaseScale * 0.8f;
+        titleText.localScale = titleTextBaseScale * 0.8f;
         titleImage.anchoredPosition += new Vector2(0, 150f);
         titleText.anchoredPosition -= new Vector2(0, 120f);
 
@@ -107,11 +213,11 @@ public class UIStart : MonoBehaviour
         introSequence
             .Append(imageGroup.DOFade(1f, introDuration))
             .Join(titleImage.DOAnchorPosY(titleImage.anchoredPosition.y - 150f, introDuration).SetEase(Ease.OutBack))
-            .Join(titleImage.DOScale(1f, introDuration).SetEase(Ease.OutBack))
+            .Join(titleImage.DOScale(titleImageBaseScale, introDuration).SetEase(Ease.OutBack))
             .AppendInterval(0.1f)
             .Append(textGroup.DOFade(1f, introDuration))
             .Join(titleText.DOAnchorPosY(titleText.anchoredPosition.y + 120f, introDuration).SetEase(Ease.OutBack))
-            .Join(titleText.DOScale(1f, introDuration).SetEase(Ease.OutBack))
+            .Join(titleText.DOScale(titleTextBaseScale, introDuration).SetEase(Ease.OutBack))
             .OnComplete(() =>
             {
                 StartIdleAnimation();
@@ -127,10 +233,10 @@ public class UIStart : MonoBehaviour
     {
         idleSequence = DOTween.Sequence();
         idleSequence
-            .Append(titleImage.DOScale(idleScale, idleDuration).SetEase(Ease.InOutSine))
-            .Join(titleText.DOScale(idleScale, idleDuration).SetEase(Ease.InOutSine))
-            .Append(titleImage.DOScale(1f, idleDuration).SetEase(Ease.InOutSine))
-            .Join(titleText.DOScale(1f, idleDuration).SetEase(Ease.InOutSine))
+            .Append(titleImage.DOScale(titleImageBaseScale * idleScale, idleDuration).SetEase(Ease.InOutSine))
+            .Join(titleText.DOScale(titleTextBaseScale * idleScale, idleDuration).SetEase(Ease.InOutSine))
+            .Append(titleImage.DOScale(titleImageBaseScale, idleDuration).SetEase(Ease.InOutSine))
+            .Join(titleText.DOScale(titleTextBaseScale, idleDuration).SetEase(Ease.InOutSine))
             .SetLoops(-1);
     }
 
@@ -154,7 +260,6 @@ public class UIStart : MonoBehaviour
 
     private IEnumerator SpawnFruitsLoop()
     {
-        // Stagger lần đầu để không spawn cùng lúc
         yield return new WaitForSeconds(0.3f);
         while (!isTransitioning)
         {
@@ -193,10 +298,8 @@ public class UIStart : MonoBehaviour
         cg.alpha = 0f;
 
         var seq = DOTween.Sequence();
-        // Bay lên + drift ngang nhẹ + xoay
         seq.Append(rect.DOAnchorPos(new Vector2(startX + driftX, targetY), duration).SetEase(Ease.Linear));
         seq.Join(rect.DORotate(new Vector3(0f, 0f, rotation), duration, RotateMode.FastBeyond360).SetEase(Ease.Linear));
-        // Fade in nhanh, fade out ở 70% cuối
         seq.Join(cg.DOFade(fruitMaxAlpha, duration * 0.15f));
         seq.Insert(duration * 0.7f, cg.DOFade(0f, duration * 0.3f));
         seq.OnComplete(() => Destroy(go));
@@ -210,7 +313,6 @@ public class UIStart : MonoBehaviour
     {
         if (parallaxLayer == null) return;
 
-        // Input.acceleration = gia tốc kế (hoạt động cả khi không có gyro riêng)
         Vector2 tilt = new Vector2(Input.acceleration.x, Input.acceleration.y);
         tilt = Vector2.ClampMagnitude(tilt, 1f);
 
@@ -236,8 +338,8 @@ public class UIStart : MonoBehaviour
     {
         Sequence exitSequence = DOTween.Sequence();
         exitSequence
-            .Append(titleImage.DOScale(0.8f, exitDuration))
-            .Join(titleText.DOScale(0.8f, exitDuration))
+            .Append(titleImage.DOScale(titleImageBaseScale * 0.8f, exitDuration))
+            .Join(titleText.DOScale(titleTextBaseScale * 0.8f, exitDuration))
             .Join(imageGroup.DOFade(0f, exitDuration))
             .Join(textGroup.DOFade(0f, exitDuration))
             .Append(CreateFadeOverlay())

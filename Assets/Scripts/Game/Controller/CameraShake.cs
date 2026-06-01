@@ -1,11 +1,6 @@
 using DG.Tweening;
 using UnityEngine;
 
-/// <summary>
-/// Shakes the camera whenever the player physically shakes the phone. Reads the device
-/// accelerometer (with an editor key fallback) and plays a DOTween position shake. Attach to the
-/// "Main Camera" GameObject. Self-contained: no wiring to other systems is required.
-/// </summary>
 public class CameraShake : MonoBehaviour
 {
     [Header("Shake detection")]
